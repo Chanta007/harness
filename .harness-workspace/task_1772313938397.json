@@ -1,0 +1,13 @@
+{
+  "id": "task_1772313938397",
+  "userIntent": "validate Docker deployment against 8-step quality gates: Syntax → Type → Lint → Security → Test → Performance → Documentation → Integration",
+  "visualContext": [],
+  "type": "authentication",
+  "context": {},
+  "requirements": [],
+  "constraints": [
+    "FOLLOW_HARNESS_METHODOLOGY",
+    "AGENT_COORDINATION_REQUIRED"
+  ],
+  "harnessCompliance": true
+}

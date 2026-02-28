@@ -270,32 +270,170 @@ app.get('/api/methodology', async (req, res) => {
   }
 });
 
-// Get agent definitions
+// HARNESS Agent Registry - Core agent definitions
+const HARNESS_AGENTS = {
+  coordinator: {
+    name: 'Master Coordinator Agent',
+    role: 'Integration Orchestrator',
+    file: 'docs/agents/coordinator.md',
+    terminal: 1,
+    responsibilities: ['Task routing', 'Conflict resolution', 'Integration validation'],
+    coordinates_with: ['all'],
+    tools: ['*'],
+    specialization: 'Multi-terminal workflow orchestration and system integration'
+  },
+  architect: {
+    name: 'Architecture Guardian Agent',
+    role: 'Architecture Enforcer',
+    file: 'docs/agents/architect.md',
+    terminal: 2,
+    responsibilities: ['Dependency validation', 'Factory patterns', 'System design'],
+    coordinates_with: ['all'],
+    tools: ['Read', 'Edit', 'Sequential', 'Context7'],
+    specialization: 'Architecture patterns and dependency compliance'
+  },
+  security: {
+    name: 'Security Enforcer Agent',
+    role: 'Security Validator',
+    file: 'docs/agents/security.md',
+    terminal: 3,
+    responsibilities: ['Authentication', 'Encryption', 'Compliance'],
+    coordinates_with: ['backend', 'testing'],
+    tools: ['Read', 'Edit', 'Bash', 'Sequential'],
+    specialization: 'Security validation and threat mitigation'
+  },
+  data: {
+    name: 'Data Guardian Agent',
+    role: 'Data Schema Specialist',
+    file: 'docs/agents/data.md',
+    terminal: 4,
+    responsibilities: ['Database design', 'RAG systems', 'Data integrity'],
+    coordinates_with: ['backend', 'security'],
+    tools: ['Read', 'Edit', 'Sequential'],
+    specialization: 'Database architecture and knowledge systems'
+  },
+  frontend: {
+    name: 'UI Experience Agent',
+    role: 'Frontend Specialist',
+    file: 'docs/agents/frontend.md',
+    terminal: 5,
+    responsibilities: ['UI/UX', 'Components', 'Accessibility'],
+    coordinates_with: ['testing', 'architect'],
+    tools: ['Read', 'Edit', 'Magic', 'Playwright'],
+    specialization: 'User interface and experience optimization'
+  },
+  backend: {
+    name: 'API Logic Specialist',
+    role: 'Backend Developer',
+    file: 'docs/agents/backend.md',
+    terminal: 6,
+    responsibilities: ['API design', 'Service logic', 'Integration'],
+    coordinates_with: ['data', 'security', 'testing'],
+    tools: ['Read', 'Edit', 'Context7', 'Sequential'],
+    specialization: 'Server-side logic and API development'
+  },
+  testing: {
+    name: 'TDD Testing Specialist',
+    role: 'Quality Assurance',
+    file: 'docs/agents/testing.md',
+    terminal: 7,
+    responsibilities: ['Test design', 'Quality gates', 'Validation'],
+    coordinates_with: ['all'],
+    tools: ['Read', 'Edit', 'Bash', 'Playwright', 'Sequential'],
+    specialization: 'Test-driven development and quality assurance'
+  },
+  devops: {
+    name: 'Build & Deploy Validator',
+    role: 'DevOps Specialist',
+    file: 'docs/agents/devops.md',
+    terminal: 8,
+    responsibilities: ['Build validation', 'CI/CD', 'Deployment'],
+    coordinates_with: ['testing', 'security'],
+    tools: ['Read', 'Edit', 'Bash', 'Sequential'],
+    specialization: 'Build systems and deployment automation'
+  }
+};
+
+// Enhanced agent parser for markdown files
+function parseAgentDefinition(content) {
+  const lines = content.split('\n');
+  const result = {
+    capabilities: [],
+    coordination_rules: [],
+    validation_checklist: [],
+    commands: [],
+    domains: []
+  };
+
+  let currentSection = '';
+  for (const line of lines) {
+    if (line.startsWith('## ') || line.startsWith('### ')) {
+      currentSection = line.replace(/^#{2,3} /, '').toLowerCase();
+    }
+    if (currentSection.includes('responsibilities') && line.trim().startsWith('- ')) {
+      result.capabilities.push(line.replace(/^- \*?\*?/, '').replace(/\*?\*?:.*/, ''));
+    }
+    if (currentSection.includes('coordination') && line.trim().startsWith('- ')) {
+      result.coordination_rules.push(line.replace(/^- /, ''));
+    }
+    if (line.trim().startsWith('□')) {
+      result.validation_checklist.push(line.replace(/^□ /, ''));
+    }
+    if (line.trim().startsWith('/')) {
+      result.commands.push(line.trim());
+    }
+    if (currentSection.includes('domains') && line.includes('**') && line.includes('(`')) {
+      const domain = line.match(/\*\*([^*]+)\*\*.*\(`([^`]+)`/);
+      if (domain) {
+        result.domains.push({ name: domain[1], path: domain[2] });
+      }
+    }
+  }
+  return result;
+}
+
+// HARNESS Agents endpoint - List all available agents
 app.get('/api/agents', async (req, res) => {
   try {
     logSecurityEvent('API_ACCESS', req, {
       endpoint: '/api/agents',
-      action: 'agents_request'
+      action: 'harness_agents_request'
     });
 
-    const agentsDir = path.join(__dirname, '..', 'agents');
-    const agentFiles = await fs.readdir(agentsDir);
     const agents = {};
+    for (const [agentName, agentConfig] of Object.entries(HARNESS_AGENTS)) {
+      try {
+        const agentPath = path.join(__dirname, '..', agentConfig.file);
+        const content = await fs.readFile(agentPath, 'utf8');
+        const parsed = parseAgentDefinition(content);
 
-    for (const file of agentFiles.filter(f => f.endsWith('.json'))) {
-      const agentPath = path.join(agentsDir, file);
-      const agentData = JSON.parse(await fs.readFile(agentPath, 'utf8'));
-      const agentName = file.replace('.json', '');
-      agents[agentName] = agentData;
+        agents[agentName] = {
+          ...agentConfig,
+          status: 'available',
+          parsed_capabilities: parsed
+        };
+      } catch (fileError) {
+        agents[agentName] = {
+          ...agentConfig,
+          status: 'error',
+          error: `Agent file not found: ${agentConfig.file}`
+        };
+      }
     }
 
-    const response = { agents, count: Object.keys(agents).length };
+    const response = {
+      agents,
+      count: Object.keys(agents).length,
+      methodology: 'HARNESS Engineering v3',
+      version: '3.0.0'
+    };
     res.json(response);
 
     logSecurityEvent('API_SUCCESS', req, {
       endpoint: '/api/agents',
       status: 200,
-      agentCount: response.count
+      agentCount: response.count,
+      methodology: 'harness_v3'
     });
   } catch (error) {
     logSecurityEvent('API_ERROR', req, {
@@ -306,10 +444,197 @@ app.get('/api/agents', async (req, res) => {
 
     res.status(500).json({
       error: 'Service temporarily unavailable',
-      message: 'Unable to process request'
+      message: 'Unable to load HARNESS agents'
     });
   }
 });
+
+// Individual agent endpoint - Get specific agent definition
+app.get('/api/agents/:agent_name', async (req, res) => {
+  try {
+    const agentName = req.params.agent_name;
+
+    logSecurityEvent('API_ACCESS', req, {
+      endpoint: `/api/agents/${agentName}`,
+      action: 'single_agent_request'
+    });
+
+    if (!HARNESS_AGENTS[agentName]) {
+      return res.status(404).json({
+        error: 'Agent not found',
+        message: `Agent '${agentName}' is not defined in HARNESS methodology`,
+        available_agents: Object.keys(HARNESS_AGENTS)
+      });
+    }
+
+    const agentConfig = HARNESS_AGENTS[agentName];
+
+    try {
+      const agentPath = path.join(__dirname, '..', agentConfig.file);
+      const content = await fs.readFile(agentPath, 'utf8');
+      const parsed = parseAgentDefinition(content);
+
+      const response = {
+        name: agentName,
+        ...agentConfig,
+        content: content,
+        parsed_capabilities: parsed,
+        status: 'available',
+        last_updated: new Date().toISOString()
+      };
+
+      res.json(response);
+
+      logSecurityEvent('API_SUCCESS', req, {
+        endpoint: `/api/agents/${agentName}`,
+        status: 200,
+        agent_loaded: agentName
+      });
+    } catch (fileError) {
+      logSecurityEvent('API_ERROR', req, {
+        endpoint: `/api/agents/${agentName}`,
+        error: `Agent file not found: ${agentConfig.file}`,
+        status: 404
+      });
+
+      res.status(404).json({
+        error: 'Agent definition not found',
+        message: `Agent file not accessible: ${agentConfig.file}`,
+        agent_config: agentConfig
+      });
+    }
+  } catch (error) {
+    logSecurityEvent('API_ERROR', req, {
+      endpoint: `/api/agents/${req.params.agent_name}`,
+      error: error.message,
+      status: 500
+    });
+
+    res.status(500).json({
+      error: 'Service temporarily unavailable',
+      message: 'Unable to load agent definition'
+    });
+  }
+});
+
+// Enhanced agent selection with HARNESS coordination
+app.post('/api/select-agents-harness', async (req, res) => {
+  try {
+    const { task, context = {} } = req.body;
+
+    logSecurityEvent('API_ACCESS', req, {
+      endpoint: '/api/select-agents-harness',
+      action: 'harness_agent_selection'
+    });
+
+    if (!task) {
+      return res.status(400).json({
+        error: 'Task required',
+        message: 'Task description is required for agent selection'
+      });
+    }
+
+    // Intelligent agent selection based on HARNESS methodology
+    const selectedAgents = [];
+    const taskLower = task.toLowerCase();
+
+    // Always include Coordinator for multi-agent tasks
+    selectedAgents.push('coordinator');
+
+    // Task-specific agent selection following HARNESS patterns
+    if (taskLower.includes('auth') || taskLower.includes('security') || taskLower.includes('permission')) {
+      selectedAgents.push('security', 'backend', 'testing');
+    }
+
+    if (taskLower.includes('frontend') || taskLower.includes('ui') || taskLower.includes('component')) {
+      selectedAgents.push('frontend', 'testing');
+    }
+
+    if (taskLower.includes('backend') || taskLower.includes('api') || taskLower.includes('service')) {
+      selectedAgents.push('backend', 'data', 'testing');
+    }
+
+    if (taskLower.includes('database') || taskLower.includes('data') || taskLower.includes('rag')) {
+      selectedAgents.push('data', 'backend', 'security');
+    }
+
+    if (taskLower.includes('deploy') || taskLower.includes('build') || taskLower.includes('ci/cd')) {
+      selectedAgents.push('devops', 'security', 'testing');
+    }
+
+    if (taskLower.includes('architecture') || taskLower.includes('design') || taskLower.includes('pattern')) {
+      selectedAgents.push('architect');
+    }
+
+    // Remove duplicates and get agent details
+    const uniqueAgents = [...new Set(selectedAgents)];
+    const agentDetails = uniqueAgents.map(agentName => ({
+      name: agentName,
+      ...HARNESS_AGENTS[agentName]
+    }));
+
+    // Determine coordination strategy
+    const coordinationStrategy = uniqueAgents.length > 3 ? 'sequential' : 'parallel';
+
+    // Calculate execution order based on dependencies
+    const executionOrder = calculateExecutionOrder(uniqueAgents);
+
+    const response = {
+      task,
+      selected_agents: agentDetails,
+      coordination_strategy: coordinationStrategy,
+      execution_order: executionOrder,
+      methodology: 'HARNESS Engineering v3',
+      estimated_duration: estimateTaskDuration(uniqueAgents, task)
+    };
+
+    res.json(response);
+
+    logSecurityEvent('API_SUCCESS', req, {
+      endpoint: '/api/select-agents-harness',
+      status: 200,
+      agents_selected: uniqueAgents.length,
+      strategy: coordinationStrategy
+    });
+  } catch (error) {
+    logSecurityEvent('API_ERROR', req, {
+      endpoint: '/api/select-agents-harness',
+      error: error.message,
+      status: 500
+    });
+
+    res.status(500).json({
+      error: 'Service temporarily unavailable',
+      message: 'Unable to select agents'
+    });
+  }
+});
+
+// Helper function to calculate execution order
+function calculateExecutionOrder(agentNames) {
+  const dependencies = {
+    coordinator: 0,
+    architect: 1,
+    security: 2,
+    data: 3,
+    backend: 4,
+    frontend: 5,
+    testing: 6,
+    devops: 7
+  };
+
+  return agentNames.sort((a, b) => dependencies[a] - dependencies[b]);
+}
+
+// Helper function to estimate task duration
+function estimateTaskDuration(agentNames, task) {
+  const baseTime = 15; // minutes
+  const agentMultiplier = agentNames.length * 5;
+  const complexityMultiplier = task.length > 100 ? 1.5 : 1;
+
+  const estimatedMinutes = Math.round(baseTime + agentMultiplier * complexityMultiplier);
+  return `${estimatedMinutes}-${estimatedMinutes + 15} minutes`;
+}
 
 // Validate task against methodology
 app.post('/api/validate', async (req, res) => {

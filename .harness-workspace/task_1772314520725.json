@@ -1,0 +1,17 @@
+{
+  "id": "task_1772314520725",
+  "userIntent": "implement MCP agent registry system for HARNESS methodology compliance - Architecture Agent design patterns, Backend Agent API implementation, Security Agent authentication patterns",
+  "visualContext": [],
+  "type": "authentication",
+  "context": {},
+  "requirements": [],
+  "constraints": [
+    "SECURITY_REVIEW_REQUIRED",
+    "DOCUMENTATION_MANDATORY",
+    "TESTING_REQUIRED",
+    "CODE_REVIEW_BEFORE_MERGE",
+    "FOLLOW_HARNESS_METHODOLOGY",
+    "AGENT_COORDINATION_REQUIRED"
+  ],
+  "harnessCompliance": true
+}
