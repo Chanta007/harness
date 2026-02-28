@@ -23,8 +23,9 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable trust proxy for Render.com (critical for rate limiting)
-app.set('trust proxy', true);
+// Secure trust proxy configuration for Render.com (prevents IP spoofing)
+// Render.com uses exactly 3 proxy layers - only trust the legitimate proxy chain
+app.set('trust proxy', 3);
 
 // Security logging function
 function logSecurityEvent(event, req, details = {}) {
@@ -37,7 +38,7 @@ function logSecurityEvent(event, req, details = {}) {
   console.log(`[SECURITY] ${timestamp} - ${event} - IP: ${ip} - ${method} ${url} - UA: ${userAgent}`, details);
 }
 
-// Rate limiting middleware (DoS protection)
+// Rate limiting middleware (DoS protection with IP spoofing protection)
 const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
@@ -47,10 +48,23 @@ const authRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Custom key generator to prevent port-based bypasses and ensure clean IP extraction
+  keyGenerator: (req) => {
+    // Extract IP and remove port if present
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const cleanIp = ip.split(':').slice(-1)[0]; // Remove IPv6 port notation
+    logSecurityEvent('RATE_LIMIT_KEY_GENERATED', req, {
+      rawIp: ip,
+      cleanIp: cleanIp,
+      userAgent: req.get('User-Agent')?.substring(0, 50)
+    });
+    return cleanIp;
+  },
   handler: (req, res) => {
     logSecurityEvent('RATE_LIMIT_EXCEEDED', req, {
       limit: 100,
-      window: '15min'
+      window: '15min',
+      ip: req.ip
     });
     res.status(429).json({
       error: 'Too many requests',
@@ -61,7 +75,7 @@ const authRateLimit = rateLimit({
   skip: (req) => req.path === '/health'
 });
 
-// Strict rate limiting for API routes
+// Strict rate limiting for API routes with enhanced security
 const apiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 50, // Limit each IP to 50 API requests per windowMs
@@ -71,10 +85,18 @@ const apiRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Custom key generator to prevent port-based bypasses
+  keyGenerator: (req) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const cleanIp = ip.split(':').slice(-1)[0];
+    return cleanIp;
+  },
   handler: (req, res) => {
     logSecurityEvent('API_RATE_LIMIT_EXCEEDED', req, {
       limit: 50,
-      window: '15min'
+      window: '15min',
+      ip: req.ip,
+      endpoint: req.originalUrl
     });
     res.status(429).json({
       error: 'API rate limit exceeded',
@@ -186,6 +208,29 @@ app.get('/health', (req, res) => {
     service: 'harness-mcp-server',
     version: process.env.HARNESS_VERSION || '3.0.0',
     timestamp: new Date().toISOString()
+  });
+});
+
+// Security validation endpoint - shows current client IP (development only)
+app.get('/debug/client-ip', (req, res) => {
+  // Only enable in development or with explicit debug flag
+  if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_IP_DEBUG) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  logSecurityEvent('IP_DEBUG_REQUEST', req, {
+    headers: req.headers,
+    connection: req.connection.remoteAddress,
+    socket: req.socket.remoteAddress
+  });
+
+  res.json({
+    clientIp: req.ip,
+    rawConnection: req.connection.remoteAddress,
+    xForwardedFor: req.headers['x-forwarded-for'],
+    xRealIp: req.headers['x-real-ip'],
+    trustProxy: req.app.get('trust proxy'),
+    warning: 'This endpoint is for development debugging only'
   });
 });
 
