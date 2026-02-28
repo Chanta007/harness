@@ -48,5 +48,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Expose ports
 EXPOSE 3000 3001
 
-# Start script that runs all services
-CMD ["./scripts/start-services.sh"]
+# Temporary: Simple test for deployment debugging
+# CMD ["./scripts/start-services.sh"]
+CMD ["node", "test-deploy.js"]
