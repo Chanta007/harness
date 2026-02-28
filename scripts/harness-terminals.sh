@@ -1,6 +1,6 @@
 #!/bin/bash
-# Harness Engineering v3: 8-Terminal Hyper-Focused System
-# Sets up 8 specialized tmux sessions for TDD-driven parallel agent workflows
+# Harness Engineering Multi-Terminal System
+# Sets up 6 specialized tmux sessions for parallel agent workflows
 
 set -euo pipefail
 
@@ -14,11 +14,48 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
-ORANGE='\033[0;33m'
-PINK='\033[1;35m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🚀 Initializing Harness Engineering v3: 8-Terminal TDD System${NC}"
+echo -e "${BLUE}🚀 Initializing Harness Engineering Multi-Terminal System${NC}"
+
+# Environment Setup - KIMI 2.5 Model Configuration
+echo -e "${PURPLE}🤖 Model Configuration Setup${NC}"
+
+# Check if .env file exists, if not create it
+if [ ! -f ".env" ]; then
+    echo -e "${YELLOW}📝 Creating .env file for model configuration...${NC}"
+    cat > .env << 'EOF'
+# KIMI 2.5 Model Configuration (Novita AI)
+NOVITA_API_KEY=your-novita-api-key-here
+NOVITA_BASE_URL=https://api.novita.ai/v3/openai
+KIMI_MODEL_ID=deepseek-ai/DeepSeek-V3
+
+# Claude Code Model Selection
+CLAUDE_CODE_MODEL=kimi-2.5
+CLAUDE_CODE_PROVIDER=novita
+
+# Alternative Models (Optional)
+ANTHROPIC_API_KEY=your-anthropic-key-here
+OPENAI_API_KEY=your-openai-key-here
+EOF
+    echo -e "${GREEN}✅ Created .env file with model configuration${NC}"
+    echo -e "${YELLOW}⚠️  Please update .env with your actual API keys${NC}"
+else
+    echo -e "${GREEN}✅ Found existing .env file${NC}"
+fi
+
+# Load environment variables
+if [ -f ".env" ]; then
+    export $(cat .env | grep -v '^#' | xargs)
+    echo -e "${GREEN}✅ Environment variables loaded${NC}"
+fi
+
+# Display current model configuration
+echo -e "${CYAN}📊 Current Model Configuration:${NC}"
+echo "  KIMI Model: ${KIMI_MODEL_ID:-Not set}"
+echo "  Novita URL: ${NOVITA_BASE_URL:-Not set}"
+echo "  Claude Code Model: ${CLAUDE_CODE_MODEL:-Default}"
+echo ""
 
 # Check if tmux is installed
 if ! command -v tmux &> /dev/null; then
@@ -29,131 +66,88 @@ fi
 # Kill existing sessions if they exist
 echo -e "${YELLOW}🧹 Cleaning up existing sessions...${NC}"
 tmux kill-session -t coordinator 2>/dev/null || true
-tmux kill-session -t arch-enforcer 2>/dev/null || true
-tmux kill-session -t security-guardian 2>/dev/null || true
-tmux kill-session -t data-schema 2>/dev/null || true
-tmux kill-session -t knowledge-search 2>/dev/null || true
-tmux kill-session -t component-engineer 2>/dev/null || true
-tmux kill-session -t tdd-specialist 2>/dev/null || true
-tmux kill-session -t build-deploy 2>/dev/null || true
+tmux kill-session -t arch-guardian 2>/dev/null || true
+tmux kill-session -t security 2>/dev/null || true
+tmux kill-session -t data-guardian 2>/dev/null || true
+tmux kill-session -t ui-experience 2>/dev/null || true
+tmux kill-session -t integration 2>/dev/null || true
 
 # Terminal 1: Master Coordinator
 echo -e "${PURPLE}📋 Starting Terminal 1: Master Coordinator${NC}"
 tmux new-session -d -s coordinator -c "$PROJECT_ROOT"
-tmux send-keys -t coordinator "echo '🎯 TERMINAL 1: Master Coordinator - Task Routing & TDD Orchestration'" Enter
-tmux send-keys -t coordinator "echo '📚 Docs: docs/orchestration/master-coordinator.md'" Enter
-tmux send-keys -t coordinator "echo '🔧 Ready for: Task routing, TDD cycle coordination, conflict resolution'" Enter
-tmux send-keys -t coordinator "echo '🔄 TDD Mode: Routes RED→GREEN→REFACTOR across T2-T6, T8'" Enter
-tmux send-keys -t coordinator "echo ''" Enter
-tmux send-keys -t coordinator "# Start Claude Code with orchestrator context" Enter
-tmux send-keys -t coordinator "# claude-code --session coordinator --agent master-orchestrator --docs docs/orchestration/" C-m
+tmux send-keys -t coordinator 'clear' C-m
+tmux send-keys -t coordinator 'echo "🎯 TERMINAL 1: Master Coordinator - Integration Orchestrator"' C-m
+tmux send-keys -t coordinator 'echo "📚 Docs: docs/orchestration/master-coordinator.md"' C-m
+tmux send-keys -t coordinator 'echo "🔧 Ready for: Task routing, conflict resolution, final integration"' C-m
+tmux send-keys -t coordinator 'echo "💡 Model: $CLAUDE_CODE_MODEL ($CLAUDE_CODE_PROVIDER)"' C-m
+tmux send-keys -t coordinator 'echo ""' C-m
+tmux send-keys -t coordinator 'echo "# Start Claude Code with orchestrator context"' C-m
+tmux send-keys -t coordinator 'echo "# claude-code --session orchestrator"' C-m
 
-# Terminal 2: Architecture Enforcer
-echo -e "${BLUE}🏗️  Starting Terminal 2: Architecture Enforcer${NC}"
-tmux new-session -d -s arch-enforcer -c "$PROJECT_ROOT"
-tmux send-keys -t arch-enforcer "echo '🏗️  TERMINAL 2: Architecture Enforcer - Patterns & Boundaries ONLY'" Enter
-tmux send-keys -t arch-enforcer "echo '📚 Docs: docs/agents/architecture-enforcer.md'" Enter
-tmux send-keys -t arch-enforcer "echo '🔧 Focus: lib/ai/factories, plugin registry, dependency layers'" Enter
-tmux send-keys -t arch-enforcer "echo '❌ Excludes: Components (→T6), Database (→T4), Security (→T3)'" Enter
-tmux send-keys -t arch-enforcer "echo ''" Enter
-tmux send-keys -t arch-enforcer "# Start Claude Code with architecture context" Enter
-tmux send-keys -t arch-enforcer "# claude-code --session arch-enforcer --agent architecture-enforcer --docs docs/agents/" C-m
+# Terminal 2: Architecture Guardian
+echo -e "${BLUE}🏗️  Starting Terminal 2: Architecture Guardian${NC}"
+tmux new-session -d -s arch-guardian -c "$PROJECT_ROOT"
+tmux send-keys -t arch-guardian 'clear' C-m
+tmux send-keys -t arch-guardian 'echo "🏗️  TERMINAL 2: Architecture Guardian - Architecture Enforcer"' C-m
+tmux send-keys -t arch-guardian 'echo "📚 Docs: docs/agents/architecture-guardian.md"' C-m
+tmux send-keys -t arch-guardian 'echo "🔧 Ready for: lib/ai/, patterns, factories, dependencies"' C-m
+tmux send-keys -t arch-guardian 'echo ""' C-m
+tmux send-keys -t arch-guardian 'echo "# claude-code --session arch-guardian"' C-m
 
-# Terminal 3: Security Guardian
-echo -e "${RED}🛡️  Starting Terminal 3: Security Guardian${NC}"
-tmux new-session -d -s security-guardian -c "$PROJECT_ROOT"
-tmux send-keys -t security-guardian "echo '🛡️  TERMINAL 3: Security Guardian - Auth & Encryption ONLY'" Enter
-tmux send-keys -t security-guardian "echo '📚 Docs: docs/agents/security-guardian.md'" Enter
-tmux send-keys -t security-guardian "echo '🔧 Focus: AuthGateway, encryption, security vulnerabilities'" Enter
-tmux send-keys -t security-guardian "echo '❌ Excludes: Component security (→T6), DB security (→T4)'" Enter
-tmux send-keys -t security-guardian "echo ''" Enter
-tmux send-keys -t security-guardian "# Start Claude Code with security context" Enter
-tmux send-keys -t security-guardian "# claude-code --session security-guardian --agent security-guardian --docs docs/agents/" C-m
+# Terminal 3: Security Enforcer
+echo -e "${RED}🛡️  Starting Terminal 3: Security Enforcer${NC}"
+tmux new-session -d -s security -c "$PROJECT_ROOT"
+tmux send-keys -t security 'clear' C-m
+tmux send-keys -t security 'echo "🛡️  TERMINAL 3: Security Enforcer - Security Validator"' C-m
+tmux send-keys -t security 'echo "📚 Docs: docs/agents/security-enforcer.md"' C-m
+tmux send-keys -t security 'echo "🔧 Ready for: lib/auth/, encryption, rate limiting, CORS"' C-m
+tmux send-keys -t security 'echo ""' C-m
+tmux send-keys -t security 'echo "# claude-code --session security"' C-m
 
-# Terminal 4: Data Schema Specialist
-echo -e "${GREEN}💾 Starting Terminal 4: Data Schema Specialist${NC}"
-tmux new-session -d -s data-schema -c "$PROJECT_ROOT"
-tmux send-keys -t data-schema "echo '💾 TERMINAL 4: Data Schema Specialist - Database Schema ONLY'" Enter
-tmux send-keys -t data-schema "echo '📚 Docs: docs/agents/data-schema-specialist.md'" Enter
-tmux send-keys -t data-schema "echo '🔧 Focus: Prisma schema, migrations, SQL performance'" Enter
-tmux send-keys -t data-schema "echo '❌ Excludes: RAG/Search (→T5), Component data (→T6), Test data (→T7)'" Enter
-tmux send-keys -t data-schema "echo ''" Enter
-tmux send-keys -t data-schema "# Start Claude Code with database schema context" Enter
-tmux send-keys -t data-schema "# claude-code --session data-schema --agent data-schema-specialist --docs docs/agents/" C-m
+# Terminal 4: Data Guardian
+echo -e "${GREEN}💾 Starting Terminal 4: Data Guardian${NC}"
+tmux new-session -d -s data-guardian -c "$PROJECT_ROOT"
+tmux send-keys -t data-guardian 'clear' C-m
+tmux send-keys -t data-guardian 'echo "💾 TERMINAL 4: Data Guardian - Data Specialist"' C-m
+tmux send-keys -t data-guardian 'echo "📚 Docs: docs/agents/data-guardian.md"' C-m
+tmux send-keys -t data-guardian 'echo "🔧 Ready for: prisma/, lib/knowledge/, RAG, extraction"' C-m
+tmux send-keys -t data-guardian 'echo ""' C-m
+tmux send-keys -t data-guardian 'echo "# claude-code --session data-guardian"' C-m
 
-# Terminal 5: Knowledge & Search Agent
-echo -e "${ORANGE}🔍 Starting Terminal 5: Knowledge & Search Agent${NC}"
-tmux new-session -d -s knowledge-search -c "$PROJECT_ROOT"
-tmux send-keys -t knowledge-search "echo '🔍 TERMINAL 5: Knowledge & Search Agent - RAG & Embeddings ONLY'" Enter
-tmux send-keys -t knowledge-search "echo '📚 Docs: docs/agents/knowledge-search-agent.md'" Enter
-tmux send-keys -t knowledge-search "echo '🔧 Focus: FastEmbed, vector search, knowledge base, RAG pipeline'" Enter
-tmux send-keys -t knowledge-search "echo '❌ Excludes: Database schema (→T4), Search UI (→T6), Search tests (→T7)'" Enter
-tmux send-keys -t knowledge-search "echo ''" Enter
-tmux send-keys -t knowledge-search "# Start Claude Code with RAG/search context" Enter
-tmux send-keys -t knowledge-search "# claude-code --session knowledge-search --agent knowledge-search-agent --docs docs/agents/" C-m
+# Terminal 5: UI Experience Agent
+echo -e "${CYAN}🎨 Starting Terminal 5: UI Experience Agent${NC}"
+tmux new-session -d -s ui-experience -c "$PROJECT_ROOT"
+tmux send-keys -t ui-experience 'clear' C-m
+tmux send-keys -t ui-experience 'echo "🎨 TERMINAL 5: UI Experience Agent - Frontend Specialist"' C-m
+tmux send-keys -t ui-experience 'echo "📚 Docs: docs/agents/ui-experience-agent.md"' C-m
+tmux send-keys -t ui-experience 'echo "🔧 Ready for: components/, app/, UI/UX, add-ins"' C-m
+tmux send-keys -t ui-experience 'echo ""' C-m
+tmux send-keys -t ui-experience 'echo "# claude-code --session ui-experience"' C-m
 
-# Terminal 6: Component Engineer
-echo -e "${CYAN}🎨 Starting Terminal 6: Component Engineer${NC}"
-tmux new-session -d -s component-engineer -c "$PROJECT_ROOT"
-tmux send-keys -t component-engineer "echo '🎨 TERMINAL 6: Component Engineer - React Components ONLY'" Enter
-tmux send-keys -t component-engineer "echo '📚 Docs: docs/agents/component-engineer.md'" Enter
-tmux send-keys -t component-engineer "echo '🔧 Focus: Server/Client boundaries, shadcn/ui, responsive design'" Enter
-tmux send-keys -t component-engineer "echo '❌ Excludes: Component testing (→T7), Build optimization (→T8)'" Enter
-tmux send-keys -t component-engineer "echo ''" Enter
-tmux send-keys -t component-engineer "# Start Claude Code with component context" Enter
-tmux send-keys -t component-engineer "# claude-code --session component-engineer --agent component-engineer --docs docs/agents/" C-m
+# Terminal 6: Integration Validator
+echo -e "${YELLOW}✅ Starting Terminal 6: Integration Validator${NC}"
+tmux new-session -d -s integration -c "$PROJECT_ROOT"
+tmux send-keys -t integration 'clear' C-m
+tmux send-keys -t integration 'echo "✅ TERMINAL 6: Integration Validator - QA Specialist"' C-m
+tmux send-keys -t integration 'echo "📚 Docs: docs/agents/integration-validator.md"' C-m
+tmux send-keys -t integration 'echo "🔧 Ready for: tests, build validation, observability"' C-m
+tmux send-keys -t integration 'echo ""' C-m
+tmux send-keys -t integration 'echo "# claude-code --session integration"' C-m
 
-# Terminal 7: TDD & Testing Specialist ⭐ NEW
-echo -e "${PINK}🔴 Starting Terminal 7: TDD & Testing Specialist ⭐ NEW${NC}"
-tmux new-session -d -s tdd-specialist -c "$PROJECT_ROOT"
-tmux send-keys -t tdd-specialist "echo '🔴 TERMINAL 7: TDD & Testing Specialist - RED-GREEN-REFACTOR CYCLES'" Enter
-tmux send-keys -t tdd-specialist "echo '📚 Docs: docs/agents/tdd-testing-specialist.md'" Enter
-tmux send-keys -t tdd-specialist "echo '🔧 Focus: Write failing tests FIRST, validate implementations, guide refactoring'" Enter
-tmux send-keys -t tdd-specialist "echo '🔄 Workflow: RED (2-5min) → GREEN (5-15min) → REFACTOR (5-10min)'" Enter
-tmux send-keys -t tdd-specialist "echo '🎯 Coordinates: T2-T6,T8 for implementation, maintains test integrity'" Enter
-tmux send-keys -t tdd-specialist "echo ''" Enter
-tmux send-keys -t tdd-specialist "# Start Claude Code with TDD context" Enter
-tmux send-keys -t tdd-specialist "# claude-code --session tdd-specialist --agent tdd-testing-specialist --docs docs/agents/" C-m
-
-# Terminal 8: Build & Deploy Validator
-echo -e "${YELLOW}📦 Starting Terminal 8: Build & Deploy Validator${NC}"
-tmux new-session -d -s build-deploy -c "$PROJECT_ROOT"
-tmux send-keys -t build-deploy "echo '📦 TERMINAL 8: Build & Deploy Validator - Build & Deployment ONLY'" Enter
-tmux send-keys -t build-deploy "echo '📚 Docs: docs/agents/build-deploy-validator.md'" Enter
-tmux send-keys -t build-deploy "echo '🔧 Focus: TypeScript compilation, production builds, CI/CD, deployment'" Enter
-tmux send-keys -t build-deploy "echo '❌ Excludes: Unit testing (→T7), Component testing (→T7)'" Enter
-tmux send-keys -t build-deploy "echo ''" Enter
-tmux send-keys -t build-deploy "# Start Claude Code with build/deploy context" Enter
-tmux send-keys -t build-deploy "# claude-code --session build-deploy --agent build-deploy-validator --docs docs/agents/" C-m
-
-echo -e "${GREEN}✅ All 8 terminals initialized with hyper-focused responsibilities!${NC}"
+echo -e "${GREEN}✅ All terminals initialized!${NC}"
 echo ""
-echo -e "${BLUE}🎮 Quick Terminal Access (8-Terminal System):${NC}"
-echo "  t1 / tmux attach -t coordinator        - Master Coordinator (Task Routing & TDD Orchestration)"
-echo "  t2 / tmux attach -t arch-enforcer      - Architecture Enforcer (Patterns & Boundaries)"
-echo "  t3 / tmux attach -t security-guardian  - Security Guardian (Auth & Encryption)"
-echo "  t4 / tmux attach -t data-schema        - Data Schema Specialist (Database Schema)"
-echo "  t5 / tmux attach -t knowledge-search   - Knowledge & Search Agent (RAG & Embeddings)"
-echo "  t6 / tmux attach -t component-engineer - Component Engineer (React Components)"
-echo "  t7 / tmux attach -t tdd-specialist     - TDD & Testing Specialist ⭐ (RED-GREEN-REFACTOR)"
-echo "  t8 / tmux attach -t build-deploy       - Build & Deploy Validator (Build & Deployment)"
+echo -e "${BLUE}🎮 Quick Terminal Access:${NC}"
+echo "  t1 / tmux attach -t coordinator     - Master Coordinator"
+echo "  t2 / tmux attach -t arch-guardian   - Architecture Guardian"
+echo "  t3 / tmux attach -t security        - Security Enforcer"
+echo "  t4 / tmux attach -t data-guardian   - Data Guardian"
+echo "  t5 / tmux attach -t ui-experience   - UI Experience Agent"
+echo "  t6 / tmux attach -t integration     - Integration Validator"
 echo ""
-echo -e "${PINK}🔄 TDD Workflow Examples:${NC}"
-echo "  T7 writes failing test → T1 routes to implementation terminal (T2-T6,T8)"
-echo "  Implementation terminal writes minimal code → T7 validates GREEN"
-echo "  T7 + implementation terminal collaborate on REFACTOR → Next cycle"
+echo -e "${PURPLE}📋 Master Coordinator Commands:${NC}"
+echo "  /spawn-parallel --workflows 4 --coordination-mode tmux"
+echo "  /assign-task --terminal [2-6] --domain [arch|security|data|ui|integration]"
+echo "  /resolve-conflicts --cross-terminal --integration-gate"
 echo ""
-echo -e "${PURPLE}📋 Master Coordinator TDD Commands:${NC}"
-echo "  /tdd-cycle --requirement \"Add LLM provider\" --route T2 --validate T7"
-echo "  /route-implementation --test-file \"llm-factory.test.ts\" --terminal T2"
-echo "  /validate-green --test-name \"should create connection\" --terminal T7"
-echo "  /coordinate-refactor --terminals \"T2,T7\" --maintain-green"
-echo ""
-echo -e "${ORANGE}🎯 Hyper-Focused Benefits:${NC}"
-echo "  • Cognitive Load: 50-100 lines per agent (vs 150+ lines before)"
-echo "  • Decision Speed: Single-focus domains enable faster decisions"
-echo "  • TDD Integration: Dedicated T7 for test-first development"
-echo "  • Parallel Efficiency: 8 agents can work simultaneously with clear boundaries"
-echo ""
-echo -e "${CYAN}🚀 Starting master coordinator with TDD orchestration...${NC}"
+echo -e "${CYAN}🚀 Starting master coordinator...${NC}"
 tmux attach -t coordinator
