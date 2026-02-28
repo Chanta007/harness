@@ -22,8 +22,17 @@ COPY package*.json ./
 # Copy application code first (needed for install scripts)
 COPY . .
 
-# Install Node.js dependencies without running postinstall scripts initially
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+# Debug: List files to check what's available
+RUN ls -la && echo "Checking for package-lock.json..." && ls -la package*.json
+
+# Install Node.js dependencies (fallback to npm install if lockfile missing)
+RUN if [ -f package-lock.json ]; then \
+        echo "Using npm ci with existing lockfile..." && \
+        npm ci --omit=dev --ignore-scripts && npm cache clean --force; \
+    else \
+        echo "No lockfile found, using npm install..." && \
+        npm install --omit=dev --ignore-scripts && npm cache clean --force; \
+    fi
 
 # Make scripts executable
 RUN chmod +x harness setup-harness.sh quick-setup.sh 2>/dev/null || true
