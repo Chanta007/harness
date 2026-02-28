@@ -20,8 +20,12 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install Node.js dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
+# Use npm install if package-lock.json doesn't exist, otherwise use npm ci
+RUN if [ -f package-lock.json ]; then \
+        npm ci --omit=dev && npm cache clean --force; \
+    else \
+        npm install --omit=dev && npm cache clean --force; \
+    fi
 
 # Copy application code (excluding setup scripts for production security)
 COPY . .

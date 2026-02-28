@@ -54,6 +54,17 @@ chmod +x harness setup-harness.sh  # Make scripts executable
 ```bash
 npm test                    # Run orchestrator tests
 npm run deploy             # Deploy to render.com
+npm run deploy:render      # Alternative deploy command
+npm run deploy:do          # Deploy to DigitalOcean
+```
+
+### Docker Deployment
+```bash
+# Ensure package-lock.json exists before Docker build
+npm install --package-lock-only
+
+# Build and deploy (automatic via render.com)
+git push origin main
 ```
 
 ## Methodology Compliance (CRITICAL)
@@ -168,6 +179,18 @@ scripts/setup-env.js      # Environment configuration
 4. **Use natural language interface** - the `./harness` command is the primary entry point
 5. **Respect dependency layers** - strictly enforce architectural boundaries
 6. **Follow factory patterns** - use createLLMConnection() instead of direct SDK calls
+
+## Common Issues & Solutions
+
+### Docker Deployment Failures
+- **Missing lockfile**: Run `npm install --package-lock-only` before git push
+- **Scripts with Windows line endings**: Convert using `dos2unix` command
+- **Permission errors**: Ensure scripts are executable with `chmod +x`
+
+### Environment Setup Issues
+- **API key missing**: Run `npm run setup-env` to generate HARNESS_API_KEY
+- **MCP server connection**: Verify HARNESS_MCP_URL is set correctly
+- **WebSocket issues**: Check HARNESS_WS_URL and firewall settings
 
 ## MCP Integration
 
