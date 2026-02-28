@@ -8,12 +8,13 @@
     "harness-setup": "./setup-harness.sh"
   },
   "scripts": {
-    "install": "chmod +x harness setup-harness.sh quick-setup.sh",
+    "install": "chmod +x harness setup-harness.sh quick-setup.sh scripts/setup-env.js",
     "postinstall": "./quick-setup.sh",
     "test": "node test/orchestrator.test.js",
     "dev": "node harness --dev",
     "build": "echo 'No build step required for CLI'",
     "setup": "./quick-setup.sh",
+    "setup-env": "node scripts/setup-env.js",
     "deploy": "node deploy/deploy-render.js",
     "deploy:render": "node deploy/deploy-render.js",
     "deploy:do": "node deploy/deploy-digitalocean.js",
@@ -48,7 +49,10 @@
     "axios": "^1.6.2",
     "form-data": "^4.0.0",
     "sharp": "^0.33.0",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "express": "^4.18.3",
+    "cors": "^2.8.5",
+    "express-rate-limit": "^7.1.5"
   },
   "devDependencies": {
     "jest": "^29.7.0",

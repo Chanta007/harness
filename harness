@@ -22,6 +22,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn, exec } = require('child_process');
 const http = require('http');
+const https = require('https');
 const WebSocket = require('ws');
 const readline = require('readline');
 
@@ -51,6 +52,74 @@ class HarnessOrchestrator {
     this.displayManager = new MultiStreamDisplay();
 
     this.ensureWorkspace();
+  }
+
+  /**
+   * HTTP client for MCP server communication with API key authentication (HARNESS.md compliance)
+   */
+  async callMcpServer(endpoint, data = null) {
+    const url = `${this.config.mcpServerUrl}${endpoint}`;
+    const apiKey = process.env.HARNESS_API_KEY;
+
+    const options = {
+      method: data ? 'POST' : 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': `Harness-Orchestrator/${this.config.version}`
+      }
+    };
+
+    // Add API key if available (HARNESS.md Security Gateway Pattern)
+    if (apiKey) {
+      options.headers['X-API-Key'] = apiKey;
+    } else if (!this.config.localMode) {
+      console.warn('⚠️ HARNESS_API_KEY not set - may fail in production mode');
+    }
+
+    if (data) {
+      options.body = JSON.stringify(data);
+    }
+
+    try {
+      const response = await this.httpRequest(url, options);
+      const responseData = JSON.parse(response);
+      return responseData;
+    } catch (error) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        throw new Error('Authentication failed - check HARNESS_API_KEY environment variable');
+      }
+      throw new Error(`MCP Server error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Promise-based HTTP request helper
+   */
+  httpRequest(url, options) {
+    return new Promise((resolve, reject) => {
+      const client = url.startsWith('https:') ? https : http;
+      const req = client.request(url, options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(data);
+          } else {
+            const error = new Error(`HTTP ${res.statusCode}: ${data}`);
+            error.statusCode = res.statusCode;
+            reject(error);
+          }
+        });
+      });
+
+      req.on('error', reject);
+
+      if (options.body) {
+        req.write(options.body);
+      }
+
+      req.end();
+    });
   }
 
   /**
@@ -408,18 +477,61 @@ class HarnessOrchestrator {
    * based on self-describing agent capabilities
    */
   async intelligentTaskClassification(userIntent, options) {
-    console.log('🤖 Using LLM for intelligent agent selection...');
+    console.log('🤖 Using MCP server for intelligent agent selection...');
 
-    // Get self-describing agent definitions
-    const agentDescriptions = this.getAgentSelfDescriptions();
+    try {
+      // Call MCP server for intelligent agent selection (HARNESS.md compliance)
+      const selectionRequest = {
+        task: userIntent,
+        context: options || {},
+        screenshot_analysis: options?.visualContext || null
+      };
 
-    // Create LLM prompt for agent selection following Harness rules
-    const prompt = this.createAgentSelectionPrompt(userIntent, agentDescriptions, options);
+      const mcpResponse = await this.callMcpServer('/api/select-agents', selectionRequest);
 
-    // Use Claude/LLM to determine best agents and strategy
-    const llmResponse = await this.callLLMForAgentSelection(prompt);
+      console.log(`  ✅ Selected agents: ${mcpResponse.selectedAgents?.join(', ')}`);
+      console.log(`  📝 Reasoning: ${mcpResponse.reasoning}`);
 
-    return llmResponse;
+      return {
+        task_type: this.determineTaskType(userIntent),
+        selected_agents: mcpResponse.selectedAgents || ['architect', 'backend'],
+        execution_strategy: 'sequential',
+        reasoning: mcpResponse.reasoning || 'MCP server agent selection'
+      };
+
+    } catch (error) {
+      console.warn(`⚠️ MCP server unavailable (${error.message}) - using local fallback`);
+
+      // Fallback to local agent selection
+      const agentDescriptions = this.getAgentSelfDescriptions();
+      const prompt = this.createAgentSelectionPrompt(userIntent, agentDescriptions, options);
+      const llmResponse = await this.callLLMForAgentSelection(prompt);
+
+      return llmResponse;
+    }
+  }
+
+  /**
+   * Determine task type from user intent (local classification)
+   */
+  determineTaskType(userIntent) {
+    const intent = userIntent.toLowerCase();
+
+    if (intent.includes('auth') || intent.includes('login') || intent.includes('security')) {
+      return 'authentication';
+    } else if (intent.includes('ui') || intent.includes('component') || intent.includes('frontend')) {
+      return 'frontend';
+    } else if (intent.includes('api') || intent.includes('backend') || intent.includes('server')) {
+      return 'backend';
+    } else if (intent.includes('deploy') || intent.includes('infrastructure')) {
+      return 'infrastructure';
+    } else if (intent.includes('test') || intent.includes('testing')) {
+      return 'testing';
+    } else if (intent.includes('performance') || intent.includes('optimize')) {
+      return 'performance';
+    } else {
+      return 'general';
+    }
   }
 
   /**
@@ -961,22 +1073,56 @@ For more information, see the documentation in the project directory.
   async validateHarnessCompliance(plan) {
     console.log('🛡️ Validating Harness compliance...');
 
-    const violations = [];
+    try {
+      // Call MCP server for comprehensive validation (HARNESS.md compliance)
+      const validationRequest = {
+        task: plan.task?.userIntent || plan.task_type,
+        agents: plan.agents || plan.selected_agents,
+        context: plan.context || {}
+      };
 
-    // Check for required documentation
-    if (plan.task_type === 'fullstack') {
-      violations.push('Missing design document requirement');
-    }
+      const mcpValidation = await this.callMcpServer('/api/validate', validationRequest);
 
-    // Check for security requirements
-    if (plan.task_type === 'authentication') {
-      if (!plan.agents.includes('security')) {
-        violations.push('Security agent required for authentication tasks');
+      if (!mcpValidation.compliant) {
+        console.log('  ⚠️ MCP validation violations:');
+        mcpValidation.violations?.forEach(violation => {
+          console.log(`    - ${violation}`);
+        });
+
+        if (mcpValidation.required_agents?.length > 0) {
+          console.log(`  📋 Required agents: ${mcpValidation.required_agents.join(', ')}`);
+        }
+
+        throw new Error(`Harness violations: ${mcpValidation.violations?.join(', ')}`);
       }
-    }
 
-    if (violations.length > 0) {
-      throw new Error(`Harness violations: ${violations.join(', ')}`);
+      console.log('  ✅ MCP server validation passed');
+
+    } catch (error) {
+      if (error.message.includes('Harness violations')) {
+        throw error; // Re-throw validation failures
+      }
+
+      console.warn(`⚠️ MCP validation unavailable (${error.message}) - using local validation`);
+
+      // Local fallback validation
+      const violations = [];
+
+      // Check for required documentation
+      if (plan.task_type === 'fullstack') {
+        violations.push('Missing design document requirement');
+      }
+
+      // Check for security requirements
+      if (plan.task_type === 'authentication') {
+        if (!plan.agents.includes('security')) {
+          violations.push('Security agent required for authentication tasks');
+        }
+      }
+
+      if (violations.length > 0) {
+        throw new Error(`Harness violations: ${violations.join(', ')}`);
+      }
     }
 
     console.log('  ✅ All Harness rules validated\n');

@@ -18,6 +18,24 @@ fi
 
 echo "✅ HARNESS.md found - methodology compliance validated"
 
+# SECURITY: Validate no key generation tools in production (HARNESS.md Security Gateway)
+echo "🛡️ Validating production security boundaries..."
+
+if [ -f "scripts/generate-api-key.js" ] || [ -f "scripts/setup-env.js" ]; then
+    echo "🚨 SECURITY VIOLATION: Environment setup scripts found in production container"
+    echo "📋 HARNESS.md Compliance: Environment setup must be done locally only"
+    echo "💡 Solution: Use static shared secret via environment variables"
+    exit 1
+fi
+
+if [ -f ".harness-keys.json" ] || [ -f ".env.local" ]; then
+    echo "🚨 SECURITY VIOLATION: Local development files found in production"
+    echo "📋 HARNESS.md Compliance: Use environment variables for production secrets"
+    exit 1
+fi
+
+echo "✅ Production security boundaries validated"
+
 # Check required environment variables
 echo "🔑 Checking environment configuration..."
 

@@ -88,6 +88,20 @@ class RenderDeployer {
       console.log('   The system will run in demo mode without these keys');
     }
 
+    // CRITICAL SECURITY CHECK: Validate HARNESS_API_KEY is prepared for production
+    if (!process.env.HARNESS_API_KEY) {
+      console.log('🚨 CRITICAL: HARNESS_API_KEY not set for deployment');
+      console.log('📋 HARNESS.md Security Gateway Requirement:');
+      console.log('   1. Setup environment locally: npm run setup-env');
+      console.log('   2. Copy the API key from .env.local');
+      console.log('   3. Set HARNESS_API_KEY in Render.com environment variables');
+      console.log('   4. Use the SAME key in both local and production');
+      console.log('');
+      console.log('⚠️ Proceeding without HARNESS_API_KEY - remember to set it in Render dashboard');
+    } else {
+      console.log('✅ HARNESS_API_KEY detected - MCP authentication configured');
+    }
+
     console.log('✅ Environment validated');
   }
 
@@ -214,8 +228,15 @@ class RenderDeployer {
     console.log('   Methodology: /api/methodology');
 
     console.log('\n📱 Environment Variables (Set in Render Dashboard):');
+    console.log('   HARNESS_API_KEY - Required for MCP server authentication (HARNESS.md Security Gateway)');
     console.log('   NOVITA_API_KEY - LLM coordination and screenshot analysis');
     console.log('   ANTHROPIC_API_KEY - Enhanced Claude features (optional)');
+
+    console.log('\n🔑 API Key Setup (CRITICAL):');
+    console.log('   1. Setup environment: npm run setup-env');
+    console.log('   2. Copy the API key from .env.local file');
+    console.log('   3. Set HARNESS_API_KEY in Render.com dashboard');
+    console.log('   4. Use SAME key for both local and production');
 
     console.log('\n📊 Monitoring & Management:');
     console.log('   Logs: https://dashboard.render.com → Service → Logs');
@@ -225,13 +246,16 @@ class RenderDeployer {
     console.log('\n🚀 Usage After Deployment:');
     console.log('   Update your local config:');
     console.log('   export HARNESS_MCP_URL=https://harness-orchestrator.onrender.com');
+    console.log('   export HARNESS_API_KEY=your_generated_api_key');
     console.log('   ./harness "test deployment"');
 
     console.log('\n💡 Next Steps:');
-    console.log('   1. Set environment variables in Render dashboard');
-    console.log('   2. Test deployment with: curl https://harness-orchestrator.onrender.com/health');
-    console.log('   3. Configure custom domain if needed');
-    console.log('   4. Set up monitoring alerts');
+    console.log('   1. Generate API key: npm run keygen');
+    console.log('   2. Set HARNESS_API_KEY in Render dashboard (CRITICAL)');
+    console.log('   3. Set other environment variables in Render dashboard');
+    console.log('   4. Test deployment with: curl https://harness-orchestrator.onrender.com/health');
+    console.log('   5. Configure custom domain if needed');
+    console.log('   6. Set up monitoring alerts');
 
     console.log('\n💰 Cost Estimation:');
     console.log('   Starter Plan: $7/month');

@@ -85,6 +85,9 @@ PAGES → COMPONENTS → API ROUTES → SERVICES → CORE → INFRASTRUCTURE →
 ### Quality Standards
 - **Evidence-Based**: All decisions supported by measurable data
 - **Security by Default**: Secure patterns and fail-safe mechanisms
+- **API Key Authentication**: All service-to-service communication requires API keys
+- **Static Shared Secret**: Same API key in local .env and production environment variables
+- **Environment Variable Security**: Secrets via environment variables, never in code or containers
 - **Performance Aware**: Sub-3-second load times, <200ms API responses
 - **Accessibility First**: WCAG 2.1 AA compliance minimum
 - **Test Coverage**: ≥80% unit tests, ≥70% integration tests
@@ -122,6 +125,29 @@ const renderer = artifactRegistry.getRenderer(artifactType);
 
 // ❌ VIOLATION: Type-specific logic
 if (artifactType === 'powerpoint') return new PowerPointRenderer();
+```
+
+### Security Gateway Pattern
+```typescript
+// ✅ CORRECT: API key authentication
+app.use('/api', validateApiKey);
+const response = await fetch(mcpEndpoint, {
+  headers: { 'X-API-Key': process.env.HARNESS_API_KEY }
+});
+
+// ❌ VIOLATION: Unauthenticated service access
+const response = await fetch(mcpEndpoint);
+```
+
+### Security Boundaries (CRITICAL)
+```bash
+# ✅ CORRECT: Static shared secret approach
+npm run setup-env                     # Generate local environment
+# Copy API key to Render.com dashboard # Same key in both environments
+
+# ❌ VIOLATION: Dynamic key generation
+curl https://server.com/generate-key  # NEVER expose generation publicly
+POST /api/generate-key                # NEVER provide generation endpoints
 ```
 
 ### Dependency Layers
@@ -211,17 +237,20 @@ The orchestrator automatically validates:
 git clone https://github.com/Chanta007/harness.git
 cd harness
 ./quick-setup.sh
+npm run setup-env     # Setup environment with API key
 ```
 
 ### Deployment Options
 
 **Render.com Docker (Recommended)**
 ```bash
+npm run setup-env    # Setup local environment with API key
 npm run deploy       # Multi-service Docker container
 ```
 
 **Digital Ocean (Alternative)**
 ```bash
+npm run setup-env    # Setup local environment with API key
 npm run deploy:do    # Serverless functions + WebSocket coordination
 ```
 
@@ -232,9 +261,15 @@ npm run deploy:do    # Serverless functions + WebSocket coordination
 - **MCP Server**: Methodology and agent coordination (Port 3000)
 - **WebSocket Server**: Real-time multi-stream coordination (Port 3001)
 - **Health Monitor**: Service monitoring and proxy (Port 8080)
+- **API Key Security**: All MCP endpoints require X-API-Key authentication
 - **Automatic Restarts**: Service monitoring and auto-recovery
 - **Redis Cache**: Session state management (optional add-on)
 - **PostgreSQL**: Persistent storage (optional add-on)
+
+**Security Requirements**:
+- **HARNESS_API_KEY**: Required environment variable for production
+- **API Key Generation**: `npm run keygen` creates secure keys
+- **Development Mode**: Warnings when API key not configured
 
 **Cost**: ~$7-10/month for complete infrastructure
 
