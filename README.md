@@ -343,6 +343,23 @@ tmux attach -t harness-8
 # Ctrl+B + Arrow Keys = Navigate | Ctrl+B + z = Zoom pane
 ```
 
+### **Exit Commands**
+```bash
+# From within tmux (any layout)
+Ctrl+B + d               # Detach (keeps session running) - RECOMMENDED
+exit                      # Close current terminal pane only
+Ctrl+B + &               # Kill entire session (asks confirmation)
+
+# From outside tmux
+tmux kill-session -t harness    # Close split windows session
+tmux kill-session -t harness-8  # Close 8-grid session
+tmux kill-server               # Nuclear option (closes ALL sessions)
+
+# Re-attach after detaching
+tmux attach -t harness          # For split windows
+tmux attach -t harness-8        # For 8-grid
+```
+
 ### **Management Commands**
 ```bash
 # Session management

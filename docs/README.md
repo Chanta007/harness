@@ -49,7 +49,20 @@ t5  # UI Experience Agent
 t6  # Integration Validator
 ```
 
-### 3. Agent-Specific Commands
+### 3. Exit Commands
+```bash
+# From within tmux (any layout)
+Ctrl+B + d               # Detach (keeps session running) - RECOMMENDED
+exit                      # Close current terminal pane only
+Ctrl+B + &               # Kill entire session (asks confirmation)
+
+# Force exit commands
+tmux kill-session -t harness         # Kill separate sessions layout
+tmux kill-session -t harness-8       # Kill all-8-grid layout
+tmux kill-server                     # Nuclear option - kills ALL tmux sessions
+```
+
+### 4. Agent-Specific Commands
 ```bash
 # Each terminal loads its specialized documentation
 # Terminal 2: Architecture Guardian
