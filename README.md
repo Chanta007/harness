@@ -70,7 +70,7 @@ chmod +x scripts/harness-terminals-v3.sh
 chmod +x scripts/terminal-aliases-v3.sh
 
 # Start all 8 terminals
-./scripts/harness-terminals-v3.sh
+./scripts/harness-terminals.sh
 
 # Load terminal aliases (optional)
 source scripts/terminal-aliases-v3.sh
@@ -111,7 +111,7 @@ tmux attach -t coordinator
 /document --create-harness-docs --project-specific
 
 # Generated files:
-# docs/harness-v2/project/
+# docs/project/
 #   ├── project-overview.md
 #   ├── architecture-decisions.md
 #   ├── domain-responsibilities.md
@@ -172,13 +172,13 @@ Edit terminal roles for your project domain:
 
 ```bash
 # Edit agent focus areas in:
-docs/harness-v2/agents/[terminal-name].md
+docs/agents/[terminal-name].md
 
 # Update routing logic in:
-docs/harness-v2/orchestration/master-coordinator.md
+docs/orchestration/master-coordinator.md
 
 # Modify TDD coordination for your stack:
-docs/harness-v2/workflows/tdd-coordination.md
+docs/workflows/tdd-coordination.md
 ```
 
 ### **Project-Specific Adaptations**
@@ -383,11 +383,11 @@ which tmux
 
 # Kill existing sessions and restart
 tmux kill-server
-./scripts/harness-terminals-v3.sh
+./scripts/harness-terminals.sh
 ```
 
 **Agent confusion about domain**:
-- Check `docs/harness-v2/agents/[terminal].md` for clear boundaries
+- Check `docs/agents/[terminal].md` for clear boundaries
 - Update "Does NOT Handle" sections
 - Restart affected terminal
 
@@ -446,7 +446,7 @@ tmonitor
 ## 📚 Documentation Structure
 
 ```
-docs/harness-v2/
+docs/
 ├── README-v3-8terminal.md          # System overview and design
 ├── agents/                         # Individual terminal documentation
 │   ├── tdd-testing-specialist.md   # T7: TDD workflows and coordination
@@ -486,4 +486,4 @@ MIT License - Adapt freely for your projects
 
 ---
 
-**Ready to transform your development workflow?** Start with `./scripts/harness-terminals-v3.sh` and experience TDD-driven multi-agent development!
+**Ready to transform your development workflow?** Start with `./scripts/harness-terminals.sh` and experience TDD-driven multi-agent development!

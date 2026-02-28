@@ -20,7 +20,7 @@ Terminal 6: Integration Validator → Testing, build, QA
 
 ### Documentation Structure
 ```
-docs/harness-v2/
+docs/
 ├── orchestration/     # Terminal 1: Master coordination
 ├── agents/           # Terminals 2-6: Specialized agents
 ├── workflows/        # Multi-terminal coordination patterns
@@ -105,7 +105,7 @@ t6  # Integration Validator
 This v2 system **extends** (not replaces) the existing Harness Engineering:
 
 - **Preserves**: Original `docs/HARNESS.md`, `CONSTRAINTS.md`, `design/`, `plans/`
-- **Adds**: Agent-focused decomposition in `docs/harness-v2/`
+- **Adds**: Agent-focused decomposition in `docs/`
 - **Enables**: Multi-terminal workflows while maintaining single-terminal compatibility
 
 ## Coordination Protocols

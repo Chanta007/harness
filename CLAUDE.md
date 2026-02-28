@@ -158,7 +158,7 @@ The Harness Engineering v3 system works optimally with MCP servers:
 - **Security**: [Your security requirements]
 
 ### **Documentation Standards**
-- **Harness Docs**: Keep `docs/harness-v2/` updated with project changes
+- **Harness Docs**: Keep `docs/` updated with project changes
 - **API Documentation**: [Your API docs standards]
 - **Component Documentation**: [Your component docs standards]
 
@@ -167,9 +167,9 @@ The Harness Engineering v3 system works optimally with MCP servers:
 ### **Multi-Agent System Issues**
 
 **Terminal Coordination Problems**:
-1. Check terminal boundaries in `docs/harness-v2/agents/`
+1. Check terminal boundaries in `docs/agents/`
 2. Use T1 (Master Coordinator) for conflict resolution
-3. Review TDD coordination in `docs/harness-v2/workflows/tdd-coordination.md`
+3. Review TDD coordination in `docs/workflows/tdd-coordination.md`
 
 **TDD Cycle Issues**:
 1. Ensure T7 writes tests first (RED phase)
@@ -182,10 +182,10 @@ The Harness Engineering v3 system works optimally with MCP servers:
 ## Cross-References
 
 **Essential Documentation**:
-- **System Overview**: `docs/harness-v2/README-v3-8terminal.md`
-- **TDD Workflows**: `docs/harness-v2/workflows/tdd-coordination.md`
-- **Master Coordination**: `docs/harness-v2/orchestration/master-coordinator.md`
-- **Individual Agents**: `docs/harness-v2/agents/[terminal-name].md`
+- **System Overview**: `docs/README-v3-8terminal.md`
+- **TDD Workflows**: `docs/workflows/tdd-coordination.md`
+- **Master Coordination**: `docs/orchestration/master-coordinator.md`
+- **Individual Agents**: `docs/agents/[terminal-name].md`
 
 **[Add your project documentation links]**
 

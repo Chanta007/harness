@@ -10,8 +10,8 @@ This template provides a baseline 8-terminal TDD-driven multi-agent system that 
 
 ### **Template Improvements**
 
-1. **Agent Documentation**: Enhance terminal documentation in `docs/harness-v2/agents/`
-2. **Coordination Protocols**: Improve TDD coordination workflows in `docs/harness-v2/workflows/`
+1. **Agent Documentation**: Enhance terminal documentation in `docs/agents/`
+2. **Coordination Protocols**: Improve TDD coordination workflows in `docs/workflows/`
 3. **Setup Scripts**: Enhance setup and customization scripts
 4. **Documentation**: Improve README, examples, and guides
 
