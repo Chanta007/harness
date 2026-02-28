@@ -23,8 +23,11 @@ COPY package*.json ./
 RUN npm ci --only=production && \
     npm cache clean --force
 
-# Copy application code
+# Copy application code (excluding setup scripts for production security)
 COPY . .
+
+# Remove setup scripts for production security (HARNESS.md compliance)
+RUN rm -f scripts/setup-env.js .env.local .harness-keys.json
 
 # Create necessary directories
 RUN mkdir -p logs tmp uploads
