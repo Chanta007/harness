@@ -1,0 +1,13 @@
+{
+  "name": "select-agents-function",
+  "version": "1.0.0",
+  "description": "Digital Ocean serverless function for AI agent selection",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "axios": "^1.6.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

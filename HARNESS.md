@@ -206,6 +206,36 @@ The orchestrator automatically validates:
 
 ## 📖 Getting Started
 
+### Quick Installation (2 minutes)
+```bash
+git clone https://github.com/Chanta007/harness.git
+cd harness
+./quick-setup.sh
+```
+
+### Deployment Options
+
+**Digital Ocean (Recommended)**
+```bash
+npm run deploy:do    # Serverless functions + WebSocket coordination
+```
+
+**Render.com (Alternative)**
+```bash
+npm run deploy:mcp  # MCP server hosting
+```
+
+### Production Architecture
+
+**Digital Ocean App Platform**:
+- **MCP Server**: Methodology and agent coordination (Node.js service)
+- **WebSocket Server**: Real-time multi-stream coordination
+- **Serverless Functions**: Screenshot analysis, agent selection, code generation
+- **Static Hosting**: Documentation and methodology guides
+- **Redis Cache**: Session state management (optional)
+
+**Cost**: ~$10-25/month for complete global infrastructure
+
 1. **Read this document** - Universal methodology overview
 2. **Load agent docs** - `/load docs/agents/coordinator.md` for project guidance
 3. **Check constraints** - Review non-negotiable architectural rules

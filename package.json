@@ -8,11 +8,13 @@
     "harness-setup": "./setup-harness.sh"
   },
   "scripts": {
-    "install": "chmod +x harness setup-harness.sh",
-    "postinstall": "./setup-harness.sh",
+    "install": "chmod +x harness setup-harness.sh quick-setup.sh",
+    "postinstall": "./quick-setup.sh",
     "test": "node test/orchestrator.test.js",
     "dev": "node harness --dev",
     "build": "echo 'No build step required for CLI'",
+    "setup": "./quick-setup.sh",
+    "deploy:do": "node deploy/deploy-digitalocean.js",
     "deploy:mcp": "node deploy/render-mcp.js",
     "deploy:docs": "node deploy/github-pages.js"
   },
