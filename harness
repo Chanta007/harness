@@ -27,6 +27,14 @@ const readline = require('readline');
 
 class HarnessOrchestrator {
   constructor() {
+    // Configuration - Environment variables or defaults
+    this.config = {
+      mcpServerUrl: process.env.HARNESS_MCP_URL || 'https://harness-orchestrator.onrender.com',
+      websocketUrl: process.env.HARNESS_WS_URL || 'wss://harness-orchestrator.onrender.com',
+      localMode: process.env.NODE_ENV === 'development',
+      version: '3.0.0'
+    };
+
     this.workspaceDir = '.harness-workspace';
     this.agents = this.loadAgentDefinitions();
     this.rules = this.loadHarnessRules();

@@ -215,26 +215,28 @@ cd harness
 
 ### Deployment Options
 
-**Digital Ocean (Recommended)**
+**Render.com Docker (Recommended)**
+```bash
+npm run deploy       # Multi-service Docker container
+```
+
+**Digital Ocean (Alternative)**
 ```bash
 npm run deploy:do    # Serverless functions + WebSocket coordination
 ```
 
-**Render.com (Alternative)**
-```bash
-npm run deploy:mcp  # MCP server hosting
-```
-
 ### Production Architecture
 
-**Digital Ocean App Platform**:
-- **MCP Server**: Methodology and agent coordination (Node.js service)
-- **WebSocket Server**: Real-time multi-stream coordination
-- **Serverless Functions**: Screenshot analysis, agent selection, code generation
-- **Static Hosting**: Documentation and methodology guides
-- **Redis Cache**: Session state management (optional)
+**Render.com Docker Deployment**:
+- **Multi-Service Container**: All services in single Docker container
+- **MCP Server**: Methodology and agent coordination (Port 3000)
+- **WebSocket Server**: Real-time multi-stream coordination (Port 3001)
+- **Health Monitor**: Service monitoring and proxy (Port 8080)
+- **Automatic Restarts**: Service monitoring and auto-recovery
+- **Redis Cache**: Session state management (optional add-on)
+- **PostgreSQL**: Persistent storage (optional add-on)
 
-**Cost**: ~$10-25/month for complete global infrastructure
+**Cost**: ~$7-10/month for complete infrastructure
 
 1. **Read this document** - Universal methodology overview
 2. **Load agent docs** - `/load docs/agents/coordinator.md` for project guidance

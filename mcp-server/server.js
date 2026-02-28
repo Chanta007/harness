@@ -14,6 +14,9 @@ const fs = require('fs').promises;
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Enable trust proxy for Render.com
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
