@@ -19,26 +19,21 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install Node.js dependencies
-# Use npm install if package-lock.json doesn't exist, otherwise use npm ci
-RUN if [ -f package-lock.json ]; then \
-        npm ci --omit=dev && npm cache clean --force; \
-    else \
-        npm install --omit=dev && npm cache clean --force; \
-    fi
-
-# Copy application code (excluding setup scripts for production security)
+# Copy application code first (needed for install scripts)
 COPY . .
+
+# Install Node.js dependencies without running postinstall scripts initially
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+
+# Make scripts executable
+RUN chmod +x harness setup-harness.sh quick-setup.sh 2>/dev/null || true
+RUN chmod +x deploy/*.js 2>/dev/null || true
 
 # Remove setup scripts for production security (HARNESS.md compliance)
 RUN rm -f scripts/setup-env.js .env.local .harness-keys.json
 
 # Create necessary directories
 RUN mkdir -p logs tmp uploads
-
-# Make scripts executable
-RUN chmod +x harness setup-harness.sh quick-setup.sh
-RUN chmod +x deploy/*.js
 
 # Set up environment
 ENV NODE_ENV=production
@@ -52,6 +47,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # Expose ports
 EXPOSE 3000 3001
 
-# Temporary: Simple test for deployment debugging
-# CMD ["./scripts/start-services.sh"]
-CMD ["node", "test-deploy.js"]
+# Start the MCP server for production deployment
+CMD ["node", "mcp-server/server.js"]
