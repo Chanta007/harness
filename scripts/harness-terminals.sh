@@ -28,7 +28,7 @@ if [ ! -f ".env" ]; then
 # KIMI 2.5 Model Configuration (Novita AI)
 NOVITA_API_KEY=your-novita-api-key-here
 NOVITA_BASE_URL=https://api.novita.ai/v3/openai
-KIMI_MODEL_ID=deepseek-ai/DeepSeek-V3
+KIMI_MODEL_ID=moonshot-ai/kimi-k2.5
 
 # Claude Code Model Selection
 CLAUDE_CODE_MODEL=kimi-2.5
