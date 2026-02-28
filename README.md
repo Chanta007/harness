@@ -62,18 +62,33 @@ cp -r temp-harness/docs temp-harness/scripts your-existing-project/
 rm -rf temp-harness
 ```
 
-### **Step 2: Initialize Multi-Agent System**
+### **Step 2: Choose Your Terminal Layout**
 
+**Option A: Separate Sessions (Traditional)**
 ```bash
-# Make scripts executable
-chmod +x scripts/harness-terminals-v3.sh
-chmod +x scripts/terminal-aliases-v3.sh
-
-# Start all 8 terminals
+# Independent tmux sessions for each terminal
 ./scripts/harness-terminals.sh
+source scripts/terminal-aliases.sh
 
-# Load terminal aliases (optional)
-source scripts/terminal-aliases-v3.sh
+# Access: t1, t2, t3, t4, t5, t6, t7, t8
+```
+
+**Option B: Split Windows (4+4 Layout)**
+```bash
+# Two windows with 4 panes each
+./scripts/harness-terminals-split.sh
+tmux attach -t harness
+
+# Switch: Ctrl+B + 0 (terminals 1-4), Ctrl+B + 1 (terminals 5-8)
+```
+
+**Option C: All-8-Grid (Bird's Eye View)** ⭐ **Recommended**
+```bash
+# All 8 terminals in one 2x4 grid
+./scripts/harness-terminals-8split.sh
+tmux attach -t harness-8
+
+# Navigate: Arrow keys, Ctrl+B + z to zoom panes
 ```
 
 ### **Step 3: Project Analysis & Setup**
@@ -298,9 +313,18 @@ echo "You are a Knowledge & Search Agent using KIMI 2.5. Leverage advanced reaso
 
 ## 🎮 Terminal Quick Reference
 
+### **Layout Options**
+
+| Layout | Script | Best For | Access Method |
+|--------|--------|----------|---------------|
+| **Separate Sessions** | `harness-terminals.sh` | Focus on individual terminals | `t1`, `t2`, etc. |
+| **Split Windows (4+4)** | `harness-terminals-split.sh` | Organized groups | `Ctrl+B + 0/1` |
+| **All-8-Grid** | `harness-terminals-8split.sh` | Overview of all terminals | `tmux attach -t harness-8` |
+
 ### **Access Commands**
 ```bash
-# Quick access (after loading aliases)
+# Option A: Separate Sessions (after loading aliases)
+source scripts/terminal-aliases.sh
 t1  # Master Coordinator
 t2  # Architecture Enforcer
 t3  # Security Guardian
@@ -310,20 +334,27 @@ t6  # Component Engineer
 t7  # TDD Specialist
 t8  # Build & Deploy Validator
 
-# TDD shortcuts
-tdd-cycle    # Show TDD workflow
-tdd-red      # RED phase guidance
-tdd-green    # GREEN phase guidance
-tdd-refactor # REFACTOR phase guidance
+# Option B: Split Windows
+tmux attach -t harness
+# Ctrl+B + 0 = Terminals 1-4 | Ctrl+B + 1 = Terminals 5-8
+
+# Option C: All-8-Grid
+tmux attach -t harness-8
+# Ctrl+B + Arrow Keys = Navigate | Ctrl+B + z = Zoom pane
 ```
 
 ### **Management Commands**
 ```bash
-thelp     # Show all terminal descriptions
-tlist     # List active sessions
-tstatus   # Detailed terminal status
-tkill     # Kill all sessions
-trestart  # Restart all terminals
+# Session management
+tmux list-sessions        # List all active sessions
+tmux kill-server         # Kill all tmux sessions
+
+# Layout-specific cleanup
+tmux kill-session -t harness    # Kill split windows session
+tmux kill-session -t harness-8  # Kill 8-grid session
+
+# Restart any layout
+tmux kill-server && ./scripts/[layout-script].sh
 ```
 
 ## 📋 Common Workflows
