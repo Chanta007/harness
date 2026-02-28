@@ -1,148 +1,189 @@
-# Harness Engineering v2: Multi-Agent Documentation System
+# Harness Engineering v3 Documentation
 
-> **Entry point for the agent-focused Harness Engineering methodology**
+> **Complete documentation index following proven MindCoachLabs pattern**
 
-## Overview
+## 🎯 Quick Start
 
-Harness v2 decomposes the monolithic HARNESS.md into specialized agent documentation, enabling parallel multi-terminal workflows with focused responsibilities and cleaner coordination.
+1. **Read Universal Entry Point**: [`HARNESS.md`](../HARNESS.md) - Core methodology and complete index
+2. **Load Agent Documentation**: Choose specialized agent based on your task
+3. **Review Constraints**: Check non-negotiable rules and architectural boundaries
+4. **Start Development**: Use natural language orchestrator interface
 
-## Architecture
+## 📚 Documentation Architecture
 
-### 6-Terminal Agent System
-```
-Terminal 1: Master Coordinator     → Orchestration & task routing
-Terminal 2: Architecture Guardian  → System design & patterns
-Terminal 3: Security Enforcer     → Auth, encryption, compliance
-Terminal 4: Data Guardian         → Database, state, RAG
-Terminal 5: UI Experience Agent   → Frontend, components, UX
-Terminal 6: Integration Validator → Testing, build, QA
-```
+### Central Methodology
+- **[HARNESS.md](../HARNESS.md)** - Universal entry point with core rules and complete index
+- **[README-ORCHESTRATOR.md](../README-ORCHESTRATOR.md)** - Orchestrator transformation guide
+- **[README-ENHANCED.md](../README-ENHANCED.md)** - Feature comparison and revolutionary use cases
+- **[README-MULTISTREAM.md](../README-MULTISTREAM.md)** - Multi-stream parallel development
+- **[MINDCOACH-INTEGRATION.md](../MINDCOACH-INTEGRATION.md)** - Backend integration architecture
 
-### Documentation Structure
-```
-docs/
-├── orchestration/     # Terminal 1: Master coordination
-├── agents/           # Terminals 2-6: Specialized agents
-├── workflows/        # Multi-terminal coordination patterns
-├── reference/        # Shared technical constraints
-└── templates/        # Reusable validation checklists
-```
+### Agent Specifications (`docs/agents/`)
+- **[coordinator.md](agents/README.md)** - Master coordination & task routing
+- **[architect.md](agents/architect.md)** - System design & architectural patterns
+- **[security.md](agents/security.md)** - Authentication, encryption, compliance
+- **[data.md](agents/data.md)** - Database schema, state management, RAG
+- **[frontend.md](agents/frontend.md)** - UI/UX components, responsive design
+- **[backend.md](agents/backend.md)** - APIs, integration, service logic
+- **[testing.md](agents/testing.md)** - TDD, quality assurance, validation
+- **[devops.md](agents/devops.md)** - Build, deployment, infrastructure
 
-## Quick Start
+### Workflow & Process (`docs/workflows/`)
+- **[tdd-coordination.md](workflows/tdd-coordination.md)** - Test-driven development patterns
+- **[conflict-resolution.md](workflows/)** - Multi-agent conflict resolution
+- **[validation-cycle.md](workflows/)** - 8-step quality gate process
+- **[parallel-development.md](workflows/)** - Multi-stream coordination
 
-### 1. Launch Terminal System
+### Reference & Constraints (`docs/reference/`)
+- **[dependency-layers.md](reference/)** - Architectural layer boundaries
+- **[tech-stack.md](reference/)** - Technology choices and patterns
+- **[security-patterns.md](reference/)** - Security implementation standards
+- **[performance-standards.md](reference/)** - Performance benchmarks and requirements
+
+## 🚀 Harness v3 Transformation
+
+### Before: Complex Multi-Terminal Setup
 ```bash
-# Start all 6 terminals with tmux
+# Old v2 approach - 6+ terminals with tmux
 ./scripts/harness-terminals.sh
-
-# Load terminal aliases
 source scripts/terminal-aliases.sh
-```
-
-### 2. Terminal Access
-```bash
 t1  # Master Coordinator
 t2  # Architecture Guardian
-t3  # Security Enforcer
-t4  # Data Guardian
-t5  # UI Experience Agent
-t6  # Integration Validator
+# ... complex terminal management
 ```
 
-### 3. Exit Commands
+### After: Ultra-Simple Orchestrator
 ```bash
-# From within tmux (any layout)
-Ctrl+B + d               # Detach (keeps session running) - RECOMMENDED
-exit                      # Close current terminal pane only
-Ctrl+B + &               # Kill entire session (asks confirmation)
-
-# Force exit commands
-tmux kill-session -t harness         # Kill separate sessions layout
-tmux kill-session -t harness-8       # Kill all-8-grid layout
-tmux kill-server                     # Nuclear option - kills ALL tmux sessions
+# New v3 approach - Single natural language commands
+./harness "implement user authentication with OAuth"
+./harness "fix this bug" --screenshot="error-console.png"
+./harness "build this UI" --screenshot="mockup.png" --interactive
 ```
 
-### 4. Agent-Specific Commands
+## 🤖 Agent Usage Patterns
+
+### Quick Agent Loading
 ```bash
-# Each terminal loads its specialized documentation
-# Terminal 2: Architecture Guardian
-/validate-patterns --factories --dependencies
-/enforce-layers --downward-only
-
-# Terminal 3: Security Enforcer
-/validate-auth --gateway-only
-/check-encryption --sensitive-fields
-
-# Terminal 4: Data Guardian
-/validate-schema --prisma --migrations
-/check-embeddings --message-search
+# Load specific agent documentation in Claude Code
+/load docs/agents/coordinator.md    # Overall project guidance
+/load docs/agents/architect.md      # System design decisions
+/load docs/agents/security.md       # Security reviews and auth
+/load docs/agents/data.md           # Database and RAG work
+/load docs/agents/frontend.md       # UI/UX development
+/load docs/agents/backend.md        # API and service logic
+/load docs/agents/testing.md        # Quality assurance
+/load docs/agents/devops.md         # Build and deployment
 ```
 
-## Documentation Navigation
+### Task Delegation with Personas
+```bash
+# Architecture analysis
+/task "Review system architecture" --persona-architect
 
-| I want to... | Read this |
-|--------------|-----------|
-| **Coordinate multiple workflows** | [orchestration/master-coordinator.md](orchestration/master-coordinator.md) |
-| **Validate architecture patterns** | [agents/architecture-guardian.md](agents/architecture-guardian.md) |
-| **Enforce security compliance** | [agents/security-enforcer.md](agents/security-enforcer.md) |
-| **Manage database changes** | [agents/data-guardian.md](agents/data-guardian.md) |
-| **Validate UI/UX components** | [agents/ui-experience-agent.md](agents/ui-experience-agent.md) |
-| **Run tests and build validation** | [agents/integration-validator.md](agents/integration-validator.md) |
-| **Handle task handoffs between terminals** | [workflows/terminal-handoffs.md](workflows/terminal-handoffs.md) |
-| **Resolve cross-terminal conflicts** | [workflows/conflict-resolution.md](workflows/conflict-resolution.md) |
+# Security audit
+/task "Audit authentication system" --persona-security
 
-## Key Benefits
+# Frontend development
+/task "Create responsive components" --persona-frontend --magic
 
-### 🎯 **Focused Responsibility**
-- Each agent sees only relevant constraints (100-150 lines vs 663)
-- Specialized validation checklists per domain
-- Reduced cognitive load and context switching
-
-### ⚡ **Parallel Execution**
-- 6 terminals work on different domains simultaneously
-- Clean handoffs between specialized agents
-- Automatic conflict detection and resolution
-
-### 🔄 **Follow-Up Task Coordination**
-- Terminal 1 orchestrates task routing
-- Completion signals trigger next appropriate terminal
-- Maintains context across complex multi-step workflows
-
-### 📚 **Maintainable Documentation**
-- Modular docs: update security rules → only touch security-enforcer.md
-- Clear ownership: each agent owns their documentation
-- Easier onboarding: read only relevant agent docs
-
-## Integration with Existing System
-
-This v2 system **extends** (not replaces) the existing Harness Engineering:
-
-- **Preserves**: Original `docs/HARNESS.md`, `CONSTRAINTS.md`, `design/`, `plans/`
-- **Adds**: Agent-focused decomposition in `docs/`
-- **Enables**: Multi-terminal workflows while maintaining single-terminal compatibility
-
-## Coordination Protocols
-
-### Task Completion Flow
-```
-Agent (T2-T6): Complete task → Signal completion
-Master (T1): Detect signal → Route follow-up → Assign next terminal
-Next Agent: Receive assignment → Load context → Execute
+# Performance optimization
+/task "Optimize database queries" --persona-performance --seq
 ```
 
-### Conflict Resolution
-```
-Agent: Detect conflict → Escalate to Master
-Master: Analyze conflict → Coordinate resolution → Validate solution
-Agents: Implement resolution → Continue workflow
+## 🔀 Multi-Stream Development
+
+### Parallel Development Streams
+```bash
+# Multiple features/bugs in parallel with git branch isolation
+./harness multi \
+  --stream1="implement auth system" --branch1="feature/auth" \
+  --stream2="fix performance bug" --branch2="bugfix/perf" --screenshot2="metrics.png" \
+  --stream3="add dashboard UI" --branch3="feature/dashboard" --screenshot3="mockup.png"
 ```
 
-### Quality Gates
+### Real-Time Coordination
+- **Git Branch Isolation**: Each stream works in dedicated branch
+- **Conflict Detection**: Automatic detection of overlapping file modifications
+- **Progress Visualization**: Live dashboard showing all stream states
+- **Agent Communication**: WebSocket coordination between streams
+
+## 📋 Compliance & Quality
+
+### Mandatory Requirements (from HARNESS.md)
+- ✅ **Agent Coordination**: All tasks require multi-agent coordination
+- ✅ **Quality Gates**: 8-step validation cycle enforcement
+- ✅ **Security Review**: Required for authentication/sensitive data
+- ✅ **Testing Coverage**: ≥80% unit tests, ≥70% integration tests
+- ✅ **Documentation**: Auto-generated for compliance-required tasks
+
+### Quality Standards
+- **Evidence-Based**: All decisions supported by measurable data
+- **Security by Default**: Secure patterns and fail-safe mechanisms
+- **Performance Aware**: <3s load times, <200ms API responses
+- **Accessibility First**: WCAG 2.1 AA compliance minimum
+
+## 🔧 Development Workflow
+
+1. **Start**: Load [`HARNESS.md`](../HARNESS.md) for methodology overview
+2. **Plan**: Use orchestrator natural language interface for task specification
+3. **Execute**: Agents coordinate automatically following methodology rules
+4. **Validate**: All quality gates pass before task completion
+5. **Document**: Compliance documentation auto-generated
+
+## 🏗️ Architecture Patterns
+
+### Factory Pattern Compliance
+```typescript
+// ✅ CORRECT: Factory usage
+const connection = await createLLMConnection(orgId, modelId);
+const response = await completeLLM(connection, { messages });
 ```
-Each Terminal: Agent-specific validation checklist
-Master: Cross-agent validation → Integration verification → Final approval
+
+### Dependency Layer Enforcement
 ```
+PAGES → COMPONENTS → API ROUTES → SERVICES → CORE → INFRASTRUCTURE → TYPES
+```
+
+### Plugin Registry Pattern
+```typescript
+// ✅ CORRECT: Registry pattern
+const renderer = artifactRegistry.getRenderer(artifactType);
+```
+
+## 🎯 Benefits of v3 Transformation
+
+### **User Experience**
+- **🎯 Learning Curve**: Complex setup → Zero learning required
+- **⚡ Time to Productivity**: Hours of setup → Instant execution
+- **🧠 Cognitive Load**: Remember commands → Natural language only
+- **📱 Accessibility**: Terminal-only → Multi-device ready
+
+### **Development Velocity**
+- **🔄 Task Coordination**: Manual agent management → Automatic orchestration
+- **📷 Context Understanding**: Text-only → Rich visual context
+- **🎯 Accuracy**: Generic solutions → Context-aware implementations
+- **👥 Collaboration**: Individual → Team-coordinated development
+
+### **Quality Assurance**
+- **🛡️ Methodology Compliance**: Manual checking → Automatic validation
+- **🧪 Testing**: Optional → Always included with Testing Agent
+- **🔒 Security**: Afterthought → Security Agent always considered
+- **📚 Documentation**: Manual → Auto-generated with compliance
+
+## 🔗 Integration Points
+
+### Claude Code Compatibility
+- **MCP Servers**: Context7, Sequential, Magic, Playwright integration
+- **Persona System**: Auto-activation based on task type and complexity
+- **Task Management**: TodoWrite integration for progress tracking
+- **Quality Gates**: Automated validation against methodology standards
+
+### MindCoachLabs Backend
+- **Session Persistence**: Resume complex tasks after interruptions
+- **Team Collaboration**: Multiple developers on same development task
+- **Development Analytics**: Track patterns and success rates
+- **Context Preservation**: Full development history like coaching conversations
 
 ---
 
-**Next Steps**: Start with `./scripts/harness-terminals.sh` to launch the terminal system, then follow agent-specific documentation for your domain.
+**Remember**: This documentation follows the proven MindCoachLabs pattern with a central entry point, detailed domain specifications, and comprehensive workflow guidance. All development must follow Harness Engineering v3 methodology for quality and compliance.

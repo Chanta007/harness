@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: harness-mcp-server
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node mcp-server/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NOVITA_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: HARNESS_VERSION
+        value: "3.0.0"
+    autoDeploy: true
+    branch: main
+    rootDir: .
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+    healthCheckPath: /health
+
+  - type: web
+    name: harness-websocket
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node websocket-server/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WS_PORT
+        value: 8080
+      - key: CORS_ORIGIN
+        value: "*"
+    autoDeploy: true
+    branch: main
+    rootDir: .
+    scaling:
+      minInstances: 1
+      maxInstances: 2
+
+  - type: web
+    name: harness-docs
+    env: static
+    buildCommand: echo "Static files ready"
+    staticPublishPath: ./docs
+    pullRequestPreviewsEnabled: false
+    autoDeploy: true
+    branch: main
+    # customDomains:
+      # - your-custom-domain.com  # Configure if you have a custom domain

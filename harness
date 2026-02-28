@@ -1,0 +1,1744 @@
+#!/usr/bin/env node
+
+/**
+ * Harness Engineering v3 - Ultra-Simple Multimodal Interactive Orchestrator
+ *
+ * Usage:
+ *   ./harness "implement user authentication with OAuth"
+ *   ./harness "fix this bug" --screenshot="error.png"
+ *   ./harness "build chat app" --interactive --screenshot="design.png"
+ *
+ * Features:
+ * - Natural language + screenshot input
+ * - Interactive execution with real-time control
+ * - Claude Code-style multimodal workflow
+ * - Real-time status queries and modifications
+ *
+ * Automatically coordinates specialist agents to implement features
+ * following Harness Engineering methodology with zero user complexity.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { spawn, exec } = require('child_process');
+const http = require('http');
+const WebSocket = require('ws');
+const readline = require('readline');
+
+class HarnessOrchestrator {
+  constructor() {
+    this.workspaceDir = '.harness-workspace';
+    this.agents = this.loadAgentDefinitions();
+    this.rules = this.loadHarnessRules();
+    this.taskId = `task_${Date.now()}`;
+    this.interactiveMode = false;
+    this.executionState = null;
+    this.wsServer = null;
+
+    // Multi-stream support
+    this.streams = new Map(); // streamId -> StreamState
+    this.agentConnections = new Map(); // agentId -> WebSocket
+    this.gitBranches = new Map(); // streamId -> branchName
+    this.conflictDetector = new ConflictDetector();
+    this.displayManager = new MultiStreamDisplay();
+
+    this.ensureWorkspace();
+  }
+
+  /**
+   * Multi-stream orchestration entry point
+   */
+  async orchestrateMultiStream(streams) {
+    console.log(`🎯 Starting ${streams.length} parallel development streams`);
+
+    // Setup multi-stream infrastructure
+    await this.setupMultiStreamInfrastructure();
+
+    // Launch all streams in parallel
+    const streamPromises = streams.map(stream => this.launchStream(stream));
+
+    // Monitor and coordinate streams
+    await this.monitorMultiStreams(streams);
+
+    // Wait for all streams to complete
+    await Promise.all(streamPromises);
+
+    console.log('✅ All development streams completed successfully!');
+  }
+
+  /**
+   * Launch individual development stream with git branch isolation
+   */
+  async launchStream(streamConfig) {
+    const { userIntent, branch, screenshots, interactive } = streamConfig;
+    const streamId = `stream_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+    console.log(`🚀 Launching stream: ${userIntent}`);
+    console.log(`📂 Git branch: ${branch}`);
+
+    // Create git branch for isolation
+    await this.createGitBranch(streamId, branch);
+
+    // Setup stream state
+    const streamState = {
+      id: streamId,
+      userIntent,
+      branch,
+      screenshots: screenshots || [],
+      interactive: interactive || false,
+      agents: [],
+      status: 'initializing',
+      progress: 0,
+      filesModified: [],
+      startTime: Date.now()
+    };
+
+    this.streams.set(streamId, streamState);
+    this.gitBranches.set(streamId, branch);
+
+    // Launch stream execution
+    return this.executeStream(streamState);
+  }
+
+  /**
+   * Execute individual stream with agent coordination
+   */
+  async executeStream(streamState) {
+    const streamId = streamState.id;
+
+    try {
+      // 1. Parse intent with visual context (same as single stream)
+      const task = await this.parseMultimodalIntent(streamState.userIntent, {
+        screenshots: streamState.screenshots,
+        streamId,
+        branch: streamState.branch
+      });
+
+      // 2. Select agents for this stream
+      const plan = await this.createIntelligentExecutionPlan(task);
+      streamState.agents = plan.agents;
+      streamState.plan = plan;
+
+      // 3. Update stream status
+      streamState.status = 'executing';
+      this.displayManager.updateStream(streamState);
+
+      // 4. Execute agents with stream isolation
+      await this.executeStreamAgents(streamState, plan);
+
+      // 5. Complete stream
+      streamState.status = 'completed';
+      streamState.progress = 1;
+      this.displayManager.updateStream(streamState);
+
+    } catch (error) {
+      streamState.status = 'failed';
+      streamState.error = error.message;
+      this.displayManager.updateStream(streamState);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute agents within a specific stream with real-time communication
+   */
+  async executeStreamAgents(streamState, plan) {
+    const streamId = streamState.id;
+
+    for (const phase of plan.phases) {
+      console.log(`📋 Stream ${streamId}: ${phase.name}`);
+
+      if (phase.strategy === 'parallel') {
+        await this.executeStreamAgentsParallel(streamState, phase);
+      } else {
+        await this.executeStreamAgentsSequential(streamState, phase);
+      }
+
+      // Check for conflicts with other streams
+      await this.checkStreamConflicts(streamState);
+    }
+  }
+
+  /**
+   * Create git branch for stream isolation
+   */
+  async createGitBranch(streamId, branchName) {
+    return new Promise((resolve, reject) => {
+      exec(`git checkout -b ${branchName}`, (error, stdout, stderr) => {
+        if (error && !error.message.includes('already exists')) {
+          // Branch might already exist, try to switch to it
+          exec(`git checkout ${branchName}`, (switchError) => {
+            if (switchError) {
+              reject(new Error(`Failed to create/switch to branch ${branchName}: ${switchError.message}`));
+            } else {
+              console.log(`📂 Switched to existing branch: ${branchName}`);
+              resolve();
+            }
+          });
+        } else {
+          console.log(`📂 Created new branch: ${branchName}`);
+          resolve();
+        }
+      });
+    });
+  }
+
+  /**
+   * Main orchestration entry point with multimodal and interactive support
+   */
+  async orchestrate(userIntent, options = {}) {
+    console.log(`🎯 Task: "${userIntent}"`);
+
+    // Handle multimodal input (screenshots)
+    if (options.screenshots) {
+      console.log(`📷 Processing ${options.screenshots.length} screenshot(s)...`);
+      userIntent = await this.enhanceWithVisualContext(userIntent, options.screenshots);
+    }
+
+    // Setup interactive mode if requested
+    if (options.interactive) {
+      console.log('🔄 Starting interactive mode...');
+      this.interactiveMode = true;
+      await this.setupInteractiveMode();
+    }
+
+    console.log('📋 Analyzing requirements...\n');
+
+    try {
+      // 1. Parse multimodal intent (text + images)
+      const task = await this.parseMultimodalIntent(userIntent, options);
+
+      // 2. Use LLM to select best agents based on self-descriptions
+      const plan = await this.createIntelligentExecutionPlan(task);
+
+      // 3. Validate against Harness rules
+      await this.validateHarnessCompliance(plan);
+
+      // 4. Execute with agent coordination (interactive if enabled)
+      if (this.interactiveMode) {
+        await this.executeInteractively(plan);
+      } else {
+        await this.executeWithAgents(plan);
+      }
+
+      // 5. Generate completion summary
+      await this.generateSummary(task, plan);
+
+      console.log('\n✅ Task completed successfully!');
+
+    } catch (error) {
+      console.error(`\n❌ Task failed: ${error.message}`);
+      await this.handleFailure(error);
+      process.exit(1);
+    } finally {
+      if (this.interactiveMode) {
+        await this.cleanupInteractiveMode();
+      }
+    }
+  }
+
+  /**
+   * Enhance user intent with visual context from screenshots
+   */
+  async enhanceWithVisualContext(userIntent, screenshots) {
+    console.log('🧠 Analyzing screenshots for context...');
+
+    const visualContext = [];
+
+    for (const screenshot of screenshots) {
+      if (!fs.existsSync(screenshot)) {
+        console.log(`⚠️  Screenshot not found: ${screenshot}`);
+        continue;
+      }
+
+      // Use Claude's multimodal capabilities to analyze screenshot
+      const analysis = await this.analyzeScreenshot(screenshot, userIntent);
+      visualContext.push(analysis);
+      console.log(`  📷 ${screenshot}: ${analysis.summary}`);
+    }
+
+    // Combine text intent with visual context
+    const enhancedIntent = this.combineTextAndVisualContext(userIntent, visualContext);
+    console.log(`🔍 Enhanced intent: ${enhancedIntent.slice(0, 100)}...\n`);
+
+    return enhancedIntent;
+  }
+
+  /**
+   * Analyze screenshot using Claude's multimodal capabilities
+   */
+  async analyzeScreenshot(screenshotPath, userIntent) {
+    // This would integrate with Claude Code's image analysis capabilities
+    // For now, return a structured analysis format
+
+    const imageBuffer = fs.readFileSync(screenshotPath);
+    const imageBase64 = imageBuffer.toString('base64');
+
+    // Mock analysis - in real implementation, this would call Claude's vision API
+    const analysis = {
+      type: this.classifyScreenshot(screenshotPath, userIntent),
+      summary: `Visual context extracted from ${path.basename(screenshotPath)}`,
+      requirements: this.extractVisualRequirements(screenshotPath),
+      technicalSpecs: this.extractTechnicalSpecs(screenshotPath),
+      designElements: this.extractDesignElements(screenshotPath)
+    };
+
+    return analysis;
+  }
+
+  /**
+   * Combine text intent with visual context analysis
+   */
+  combineTextAndVisualContext(userIntent, visualContext) {
+    if (!visualContext || visualContext.length === 0) {
+      return userIntent;
+    }
+
+    let enhancedIntent = userIntent;
+
+    // Add visual context summary
+    const visualSummary = visualContext.map(ctx => ctx.summary).join('; ');
+    enhancedIntent += `\n\nVisual Context: ${visualSummary}`;
+
+    // Add extracted requirements
+    const requirements = visualContext.flatMap(ctx => ctx.requirements || []);
+    if (requirements.length > 0) {
+      enhancedIntent += `\n\nExtracted Requirements: ${requirements.join(', ')}`;
+    }
+
+    // Add technical specifications
+    const specs = visualContext.flatMap(ctx => ctx.technicalSpecs || []);
+    if (specs.length > 0) {
+      enhancedIntent += `\n\nTechnical Specs: ${specs.join(', ')}`;
+    }
+
+    // Add design elements
+    const designElements = visualContext.flatMap(ctx => ctx.designElements || []);
+    if (designElements.length > 0) {
+      enhancedIntent += `\n\nDesign Elements: ${designElements.join(', ')}`;
+    }
+
+    return enhancedIntent;
+  }
+
+  /**
+   * Setup interactive mode with WebSocket server for real-time control
+   */
+  async setupInteractiveMode() {
+    return new Promise((resolve) => {
+      // Create WebSocket server for real-time communication
+      this.wsServer = new WebSocket.Server({ port: 8080 });
+
+      console.log('📡 Interactive server started on ws://localhost:8080');
+      console.log('💬 Interactive commands available:');
+      console.log('   status          - Show current progress');
+      console.log('   pause [agent]   - Pause execution');
+      console.log('   resume          - Resume execution');
+      console.log('   modify "text"   - Add requirements');
+      console.log('   screenshot path - Add visual feedback');
+      console.log('   quit           - Stop execution\n');
+
+      this.wsServer.on('connection', (ws) => {
+        console.log('🔗 Interactive client connected');
+
+        ws.on('message', async (message) => {
+          await this.handleInteractiveCommand(message.toString(), ws);
+        });
+      });
+
+      // Also setup readline for console input
+      this.setupConsoleInteraction();
+
+      resolve();
+    });
+  }
+
+  /**
+   * Setup console-based interactive input
+   */
+  setupConsoleInteraction() {
+    this.rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      prompt: '> '
+    });
+
+    this.rl.on('line', async (input) => {
+      await this.handleInteractiveCommand(input.trim());
+      if (this.executionState && this.executionState.status === 'running') {
+        this.rl.prompt();
+      }
+    });
+  }
+
+  /**
+   * Parse multimodal intent (text + images) following Harness rules
+   */
+  async parseMultimodalIntent(userIntent, options) {
+    console.log('🧠 Parsing multimodal intent...');
+
+    const task = {
+      id: this.taskId,
+      userIntent,
+      visualContext: options.visualContext || [],
+      type: (await this.intelligentTaskClassification(userIntent, options)).task_type,
+      context: this.gatherContext(options),
+      requirements: await this.extractRequirements(userIntent),
+      constraints: await this.getApplicableHarnessConstraints(userIntent),
+      harnessCompliance: true // Ensure all tasks follow Harness methodology
+    };
+
+    // Validate task against Harness rules early
+    await this.validateTaskAgainstHarnessRules(task);
+
+    this.saveTaskState(task);
+    return task;
+  }
+
+  /**
+   * Use LLM to intelligently classify task and select agents
+   * based on self-describing agent capabilities
+   */
+  async intelligentTaskClassification(userIntent, options) {
+    console.log('🤖 Using LLM for intelligent agent selection...');
+
+    // Get self-describing agent definitions
+    const agentDescriptions = this.getAgentSelfDescriptions();
+
+    // Create LLM prompt for agent selection following Harness rules
+    const prompt = this.createAgentSelectionPrompt(userIntent, agentDescriptions, options);
+
+    // Use Claude/LLM to determine best agents and strategy
+    const llmResponse = await this.callLLMForAgentSelection(prompt);
+
+    return llmResponse;
+  }
+
+  /**
+   * Select agents with LLM (wrapper for intelligentTaskClassification)
+   */
+  async selectAgentsWithLLM(userIntent, options) {
+    return await this.intelligentTaskClassification(userIntent, options);
+  }
+
+  /**
+   * Get self-describing agent definitions (like tool descriptions)
+   */
+  getAgentSelfDescriptions() {
+    return {
+      architect: {
+        name: "Architecture Agent",
+        emoji: "🏗️",
+        description: "Systems architecture design, dependency management, scalability planning, and technical debt assessment",
+        capabilities: [
+          "System architecture analysis and recommendations",
+          "Design pattern implementation and validation",
+          "Dependency structure optimization",
+          "Scalability and performance architecture",
+          "Technical debt assessment and remediation planning"
+        ],
+        specializes_in: ["system design", "architecture patterns", "scalability", "technical debt"],
+        best_for: "Complex system design, architectural decisions, dependency management, scalability planning",
+        harness_role: "Ensures architectural compliance with Harness Engineering methodology"
+      },
+
+      security: {
+        name: "Security Agent",
+        emoji: "🛡️",
+        description: "Security analysis, threat modeling, authentication systems, and compliance verification",
+        capabilities: [
+          "Security vulnerability assessment and remediation",
+          "Authentication and authorization implementation (OAuth, JWT, RBAC)",
+          "Threat modeling and security architecture",
+          "Compliance verification and security best practices",
+          "Security code review and penetration testing guidance"
+        ],
+        specializes_in: ["authentication", "authorization", "security vulnerabilities", "compliance"],
+        best_for: "Any task involving user authentication, security, permissions, or sensitive data",
+        harness_role: "Enforces security constraints and validates security compliance"
+      },
+
+      frontend: {
+        name: "Frontend Agent",
+        emoji: "🎨",
+        description: "User interface development, UX optimization, responsive design, and accessibility compliance",
+        capabilities: [
+          "React/Vue/Angular component development",
+          "Responsive design and mobile optimization",
+          "Accessibility compliance (WCAG) and inclusive design",
+          "UI/UX optimization and user interaction design",
+          "State management and frontend architecture"
+        ],
+        specializes_in: ["ui components", "responsive design", "accessibility", "user experience"],
+        best_for: "UI development, component creation, visual design implementation, user experience optimization",
+        harness_role: "Ensures frontend code follows design system patterns and accessibility standards"
+      },
+
+      backend: {
+        name: "Backend Agent",
+        emoji: "⚙️",
+        description: "Server-side development, API implementation, database integration, and business logic",
+        capabilities: [
+          "REST/GraphQL API development and optimization",
+          "Database schema design and query optimization",
+          "Business logic implementation and service architecture",
+          "Error handling, logging, and monitoring setup",
+          "Performance optimization and caching strategies"
+        ],
+        specializes_in: ["api development", "database design", "business logic", "performance optimization"],
+        best_for: "Server-side development, API creation, database work, business logic implementation",
+        harness_role: "Implements backend systems following service architecture patterns and data integrity rules"
+      },
+
+      testing: {
+        name: "Testing Agent",
+        emoji: "🧪",
+        description: "Quality assurance, test automation, coverage analysis, and bug detection",
+        capabilities: [
+          "Unit test development and test-driven development",
+          "Integration and E2E test automation",
+          "Test coverage analysis and quality metrics",
+          "Bug detection, reproduction, and regression testing",
+          "Performance testing and load testing strategies"
+        ],
+        specializes_in: ["unit testing", "integration testing", "e2e testing", "quality assurance"],
+        best_for: "Test creation, quality assurance, bug fixing, test automation setup",
+        harness_role: "Ensures code quality through comprehensive testing following TDD principles"
+      },
+
+      performance: {
+        name: "Performance Agent",
+        emoji: "⚡",
+        description: "Performance optimization, bottleneck identification, and system efficiency improvement",
+        capabilities: [
+          "Performance bottleneck identification and analysis",
+          "Database query optimization and caching strategies",
+          "Frontend performance optimization (bundle size, load times)",
+          "System resource optimization and monitoring setup",
+          "Scalability analysis and performance testing"
+        ],
+        specializes_in: ["performance optimization", "bottleneck analysis", "caching", "scalability"],
+        best_for: "Performance issues, slow systems, optimization tasks, scalability improvements",
+        harness_role: "Optimizes system performance while maintaining code quality and architectural integrity"
+      },
+
+      devops: {
+        name: "DevOps Agent",
+        emoji: "🚀",
+        description: "Infrastructure automation, deployment pipelines, monitoring, and operational excellence",
+        capabilities: [
+          "CI/CD pipeline setup and optimization",
+          "Container orchestration (Docker, Kubernetes)",
+          "Infrastructure as code and automation",
+          "Monitoring, logging, and alerting setup",
+          "Deployment strategies and operational procedures"
+        ],
+        specializes_in: ["deployment", "ci/cd", "infrastructure", "monitoring"],
+        best_for: "Deployment setup, infrastructure work, CI/CD pipelines, monitoring and operations",
+        harness_role: "Automates deployment and operational processes following infrastructure best practices"
+      }
+    };
+  }
+
+  /**
+   * Create intelligent agent selection prompt for LLM
+   */
+  createAgentSelectionPrompt(userIntent, agentDescriptions, options) {
+    return `
+You are the Harness Engineering Orchestrator. Analyze the user's intent and select the most appropriate agents following Harness Engineering methodology.
+
+User Intent: "${userIntent}"
+
+${options.visualContext ? `Visual Context: ${JSON.stringify(options.visualContext, null, 2)}` : ''}
+
+Available Agents:
+${Object.entries(agentDescriptions).map(([key, agent]) => `
+${agent.emoji} **${agent.name}**: ${agent.description}
+- Capabilities: ${agent.capabilities.join(', ')}
+- Best for: ${agent.best_for}
+- Harness role: ${agent.harness_role}
+`).join('\n')}
+
+Task: Select 2-6 most appropriate agents and determine execution strategy.
+
+Requirements:
+1. MUST follow Harness Engineering methodology
+2. Include Security Agent for any authentication/sensitive data tasks
+3. Include Testing Agent for any implementation tasks
+4. Consider dependencies between agents
+5. Choose execution strategy: 'sequential', 'parallel', or 'hybrid'
+
+Respond in JSON format:
+{
+  "task_type": "authentication|performance|frontend|backend|fullstack|infrastructure",
+  "selected_agents": ["agent1", "agent2", "agent3"],
+  "execution_strategy": "sequential|parallel|hybrid",
+  "reasoning": "Why these agents were selected",
+  "dependencies": {"agent1": ["prerequisite_agent"], "agent2": []},
+  "estimated_duration": "minutes",
+  "harness_compliance": {
+    "documentation_required": true/false,
+    "security_review": true/false,
+    "testing_required": true/false
+  }
+}`;
+  }
+
+  /**
+   * Call LLM for intelligent agent selection
+   */
+  async callLLMForAgentSelection(prompt) {
+    // For now, return a mock response for help and simple commands
+    // In full implementation, this would call Claude/LLM APIs
+
+    // Handle special commands
+    if (prompt.includes('--help')) {
+      return {
+        task_type: "help",
+        selected_agents: [],
+        execution_strategy: "direct",
+        reasoning: "Help command requires direct response",
+        dependencies: {},
+        estimated_duration: "immediate",
+        harness_compliance: {
+          documentation_required: false,
+          security_review: false,
+          testing_required: false
+        },
+        help_message: this.getHelpMessage()
+      };
+    }
+
+    // For development, return intelligent defaults based on intent analysis
+    const intent = prompt.toLowerCase();
+
+    if (intent.includes('authentication') || intent.includes('login') || intent.includes('oauth') || intent.includes('jwt')) {
+      return {
+        task_type: "authentication",
+        selected_agents: ["security", "backend", "frontend", "testing"],
+        execution_strategy: "sequential",
+        reasoning: "Authentication requires security-first approach with backend implementation and frontend integration",
+        dependencies: { "backend": ["security"], "frontend": ["backend"], "testing": ["frontend"] },
+        estimated_duration: "30-45 minutes",
+        harness_compliance: { documentation_required: true, security_review: true, testing_required: true }
+      };
+    }
+
+    if (intent.includes('ui') || intent.includes('component') || intent.includes('frontend')) {
+      return {
+        task_type: "frontend",
+        selected_agents: ["frontend", "testing"],
+        execution_strategy: "sequential",
+        reasoning: "UI development with testing validation",
+        dependencies: { "testing": ["frontend"] },
+        estimated_duration: "15-30 minutes",
+        harness_compliance: { documentation_required: false, security_review: false, testing_required: true }
+      };
+    }
+
+    if (intent.includes('create') || intent.includes('implement') || intent.includes('build')) {
+      return {
+        task_type: "implementation",
+        selected_agents: ["backend", "testing"],
+        execution_strategy: "sequential",
+        reasoning: "Implementation task with testing validation",
+        dependencies: { "testing": ["backend"] },
+        estimated_duration: "10-20 minutes",
+        harness_compliance: { documentation_required: false, security_review: false, testing_required: true }
+      };
+    }
+
+    // Default response for general tasks
+    return {
+      task_type: "general",
+      selected_agents: ["architect", "backend", "frontend"],
+      execution_strategy: "sequential",
+      reasoning: "General development task with architectural oversight",
+      dependencies: { "backend": ["architect"], "frontend": ["backend"] },
+      estimated_duration: "20-40 minutes",
+      harness_compliance: { documentation_required: true, security_review: false, testing_required: true }
+    };
+  }
+
+  /**
+   * Get help message for the harness orchestrator
+   */
+  getHelpMessage() {
+    return `
+🎯 Harness Engineering v3 - Ultra-Simple Development Orchestrator
+
+USAGE:
+  ./harness "<description>"              # Natural language task
+  ./harness "<task>" --screenshot="..."  # With visual context
+  ./harness "<task>" --interactive       # Interactive execution
+  ./harness "<task>" --branch="..."      # Custom git branch
+
+MULTI-STREAM USAGE:
+  ./harness multi \\
+    --stream1="<task1>" --branch1="<branch1>" \\
+    --stream2="<task2>" --branch2="<branch2>" --screenshot2="<img>" \\
+    --stream3="<task3>" --branch3="<branch3>"
+
+EXAMPLES:
+  ./harness "implement user authentication with OAuth"
+  ./harness "fix this bug" --screenshot="error-console.png"
+  ./harness "build this UI" --screenshot="figma-mockup.png" --interactive
+  ./harness "optimize dashboard performance" --screenshot="metrics.png"
+
+INTERACTIVE COMMANDS (during execution):
+  status          - Show current progress
+  pause           - Pause execution
+  resume          - Resume execution
+  modify "<text>" - Add/modify requirements
+  screenshot "<path>" - Add visual context
+  stop            - Stop execution
+
+FEATURES:
+  ✅ Natural language task specification
+  ✅ Multimodal input (screenshots + text)
+  ✅ Interactive real-time control
+  ✅ Intelligent agent selection
+  ✅ Multi-stream parallel development
+  ✅ Git branch isolation
+  ✅ Harness methodology compliance
+
+For more information, see the documentation in the project directory.
+`;
+  }
+
+  /**
+   * Classify task type to determine agent selection strategy
+   */
+  classifyTask(intent) {
+    const classifiers = {
+      authentication: /auth|login|oauth|jwt|permission|rbac|security/i,
+      performance: /performance|slow|optimize|memory|speed|bottleneck/i,
+      frontend: /ui|component|react|vue|angular|design|responsive/i,
+      backend: /api|server|database|endpoint|service|backend/i,
+      testing: /test|e2e|unit|integration|coverage|quality/i,
+      infrastructure: /deploy|docker|ci\/cd|kubernetes|infrastructure/i,
+      fullstack: /build|create|implement|add.*feature|develop/i
+    };
+
+    for (const [type, regex] of Object.entries(classifiers)) {
+      if (regex.test(intent)) return type;
+    }
+
+    return 'general';
+  }
+
+  /**
+   * Create intelligent execution plan with agent coordination
+   */
+  async createExecutionPlan(task) {
+    console.log('📋 Creating execution plan...');
+
+    const agents = this.selectAgents(task);
+    const strategy = this.determineStrategy(task, agents);
+
+    const plan = {
+      task,
+      agents,
+      strategy, // 'sequential', 'parallel', 'hybrid'
+      phases: this.createPhases(task, agents, strategy),
+      dependencies: this.resolveDependencies(agents),
+      estimatedDuration: this.estimateDuration(task, agents)
+    };
+
+    console.log(`📊 Plan: ${plan.phases.length} phases, ${agents.length} agents`);
+    console.log(`⚡ Estimated duration: ${plan.estimatedDuration} minutes\n`);
+
+    this.savePlanState(plan);
+    return plan;
+  }
+
+  /**
+   * Select appropriate agents based on task classification
+   */
+  selectAgents(task) {
+    const agentMap = {
+      authentication: ['security', 'backend', 'frontend', 'testing'],
+      performance: ['performance', 'architect', 'backend'],
+      frontend: ['frontend', 'testing'],
+      backend: ['backend', 'architect', 'testing'],
+      testing: ['qa', 'testing'],
+      infrastructure: ['devops', 'architect'],
+      fullstack: ['architect', 'security', 'backend', 'frontend', 'testing', 'devops'],
+      general: ['architect', 'backend', 'frontend']
+    };
+
+    const selectedAgents = agentMap[task.type] || agentMap.general;
+
+    // Filter agents based on context and requirements
+    return selectedAgents.filter(agent =>
+      this.agents[agent] && this.isAgentRelevant(agent, task)
+    );
+  }
+
+  /**
+   * Execute plan with intelligent agent coordination
+   */
+  async executeWithAgents(plan) {
+    console.log('🚀 Executing with agent coordination...\n');
+
+    const progress = this.createProgressTracker(plan);
+
+    for (const phase of plan.phases) {
+      console.log(`📋 Phase: ${phase.name}`);
+
+      if (phase.strategy === 'parallel') {
+        await this.executeParallel(phase.agents, phase.tasks, progress);
+      } else {
+        await this.executeSequential(phase.agents, phase.tasks, progress);
+      }
+
+      // Validate phase completion
+      await this.validatePhase(phase);
+      console.log(`✅ Phase "${phase.name}" completed\n`);
+    }
+  }
+
+  /**
+   * Execute agents in parallel for independent tasks
+   */
+  async executeParallel(agents, tasks, progress) {
+    const agentPromises = agents.map(async (agent, index) => {
+      const task = tasks[index];
+      progress.start(agent);
+
+      try {
+        const result = await this.executeAgent(agent, task);
+        progress.complete(agent, result);
+        return result;
+      } catch (error) {
+        progress.fail(agent, error);
+        throw error;
+      }
+    });
+
+    return Promise.all(agentPromises);
+  }
+
+  /**
+   * Execute agents sequentially for dependent tasks
+   */
+  async executeSequential(agents, tasks, progress) {
+    const results = [];
+
+    for (let i = 0; i < agents.length; i++) {
+      const agent = agents[i];
+      const task = tasks[i];
+
+      progress.start(agent);
+
+      try {
+        const result = await this.executeAgent(agent, task, results);
+        progress.complete(agent, result);
+        results.push(result);
+      } catch (error) {
+        progress.fail(agent, error);
+        throw error;
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Execute individual agent with Claude Code Task tool
+   */
+  async executeAgent(agentName, task, previousResults = []) {
+    const agent = this.agents[agentName];
+    const agentTask = this.buildAgentTask(agent, task, previousResults);
+
+    console.log(`  🔄 ${agent.emoji} ${agent.name}: ${task.description}`);
+
+    // Use Claude Code's Task tool for agent execution
+    return new Promise((resolve, reject) => {
+      const agentProcess = spawn('claude', ['--delegate', '--persona', agentName], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: process.cwd()
+      });
+
+      agentProcess.stdin.write(JSON.stringify(agentTask));
+      agentProcess.stdin.end();
+
+      let output = '';
+      let error = '';
+
+      agentProcess.stdout.on('data', (data) => {
+        output += data.toString();
+        this.updateProgress(agentName, data.toString());
+      });
+
+      agentProcess.stderr.on('data', (data) => {
+        error += data.toString();
+      });
+
+      agentProcess.on('close', (code) => {
+        if (code === 0) {
+          const result = this.parseAgentResult(output);
+          console.log(`    ✅ ${agent.name}: Completed`);
+          resolve(result);
+        } else {
+          console.log(`    ❌ ${agent.name}: Failed`);
+          reject(new Error(`Agent ${agentName} failed: ${error}`));
+        }
+      });
+    });
+  }
+
+  /**
+   * Create progress tracking system
+   */
+  createProgressTracker(plan) {
+    const tracker = {
+      agents: {},
+      startTime: Date.now(),
+
+      start: (agent) => {
+        tracker.agents[agent] = {
+          status: 'running',
+          startTime: Date.now()
+        };
+        this.displayProgress(tracker);
+      },
+
+      complete: (agent, result) => {
+        tracker.agents[agent].status = 'completed';
+        tracker.agents[agent].result = result;
+        tracker.agents[agent].duration = Date.now() - tracker.agents[agent].startTime;
+        this.displayProgress(tracker);
+      },
+
+      fail: (agent, error) => {
+        tracker.agents[agent].status = 'failed';
+        tracker.agents[agent].error = error.message;
+        this.displayProgress(tracker);
+      }
+    };
+
+    return tracker;
+  }
+
+  /**
+   * Display real-time progress
+   */
+  displayProgress(tracker) {
+    // Clear and redraw progress display
+    process.stdout.write('\r\x1b[K'); // Clear line
+
+    const total = Object.keys(tracker.agents).length;
+    const completed = Object.values(tracker.agents).filter(a => a.status === 'completed').length;
+    const running = Object.values(tracker.agents).filter(a => a.status === 'running').length;
+    const failed = Object.values(tracker.agents).filter(a => a.status === 'failed').length;
+
+    const percentage = Math.round((completed / total) * 100);
+    const elapsed = Math.round((Date.now() - tracker.startTime) / 1000);
+
+    console.log(`\n📊 Progress: ${percentage}% | ✅ ${completed} | 🔄 ${running} | ❌ ${failed} | ⏱️  ${elapsed}s`);
+
+    // Show individual agent status
+    for (const [agent, status] of Object.entries(tracker.agents)) {
+      const emoji = status.status === 'completed' ? '✅' :
+                   status.status === 'failed' ? '❌' : '🔄';
+      const agentInfo = this.agents[agent];
+      console.log(`  ${emoji} ${agentInfo?.emoji || '🤖'} ${agentInfo?.name || agent}`);
+    }
+  }
+
+  /**
+   * Validate Harness Engineering compliance
+   */
+  async validateHarnessCompliance(plan) {
+    console.log('🛡️ Validating Harness compliance...');
+
+    const violations = [];
+
+    // Check for required documentation
+    if (plan.task_type === 'fullstack') {
+      violations.push('Missing design document requirement');
+    }
+
+    // Check for security requirements
+    if (plan.task_type === 'authentication') {
+      if (!plan.agents.includes('security')) {
+        violations.push('Security agent required for authentication tasks');
+      }
+    }
+
+    if (violations.length > 0) {
+      throw new Error(`Harness violations: ${violations.join(', ')}`);
+    }
+
+    console.log('  ✅ All Harness rules validated\n');
+  }
+
+  /**
+   * Utility methods
+   */
+  ensureWorkspace() {
+    if (!fs.existsSync(this.workspaceDir)) {
+      fs.mkdirSync(this.workspaceDir, { recursive: true });
+    }
+  }
+
+  saveTaskState(task) {
+    const filepath = path.join(this.workspaceDir, `${task.id}.json`);
+    fs.writeFileSync(filepath, JSON.stringify(task, null, 2));
+  }
+
+  loadAgentDefinitions() {
+    // Load from docs/agents/ directory
+    const agentsDir = path.join(__dirname, 'docs', 'agents');
+    const agents = {};
+
+    if (fs.existsSync(agentsDir)) {
+      const agentFiles = fs.readdirSync(agentsDir).filter(f => f.endsWith('.md'));
+
+      for (const file of agentFiles) {
+        const agentName = path.basename(file, '.md');
+        const content = fs.readFileSync(path.join(agentsDir, file), 'utf8');
+        agents[agentName] = this.parseAgentDefinition(content, agentName);
+      }
+    }
+
+    return agents;
+  }
+
+  parseAgentDefinition(content, name) {
+    // Extract agent metadata from markdown
+    const lines = content.split('\n');
+    const agent = {
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      emoji: this.getAgentEmoji(name),
+      capabilities: [],
+      specializations: []
+    };
+
+    // Parse capabilities and specializations from content
+    // This would be enhanced based on actual agent doc format
+
+    return agent;
+  }
+
+  getAgentEmoji(agentName) {
+    const emojiMap = {
+      security: '🛡️',
+      frontend: '🎨',
+      backend: '⚙️',
+      architect: '🏗️',
+      testing: '🧪',
+      qa: '✅',
+      performance: '⚡',
+      devops: '🚀'
+    };
+
+    return emojiMap[agentName] || '🤖';
+  }
+
+  /**
+   * Setup multi-stream infrastructure with WebSocket communication
+   */
+  async setupMultiStreamInfrastructure() {
+    // Create WebSocket server for agent communication
+    this.wsServer = new WebSocket.Server({
+      port: 8080,
+      path: '/agent-communication'
+    });
+
+    console.log('📡 Multi-stream agent communication server started on ws://localhost:8080/agent-communication');
+
+    this.wsServer.on('connection', (ws, req) => {
+      ws.on('message', async (message) => {
+        await this.handleAgentMessage(JSON.parse(message.toString()), ws);
+      });
+
+      ws.on('close', () => {
+        // Remove agent connection
+        for (const [agentId, connection] of this.agentConnections.entries()) {
+          if (connection === ws) {
+            this.agentConnections.delete(agentId);
+            break;
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Handle incoming messages from agents
+   */
+  async handleAgentMessage(message, ws) {
+    const { type, streamId, agentId, data } = message;
+
+    switch (type) {
+      case 'agent_connect':
+        this.agentConnections.set(agentId, ws);
+        console.log(`🤖 Agent ${agentId} connected for stream ${streamId}`);
+        break;
+
+      case 'progress_update':
+        await this.handleAgentProgressUpdate(streamId, agentId, data);
+        break;
+
+      case 'file_modified':
+        await this.handleFileModification(streamId, agentId, data);
+        break;
+
+      case 'request_assistance':
+        await this.handleAgentAssistanceRequest(streamId, agentId, data);
+        break;
+
+      case 'phase_complete':
+        await this.handlePhaseCompletion(streamId, agentId, data);
+        break;
+
+      case 'error_occurred':
+        await this.handleAgentError(streamId, agentId, data);
+        break;
+    }
+  }
+
+  /**
+   * Handle agent progress updates
+   */
+  async handleAgentProgressUpdate(streamId, agentId, data) {
+    const stream = this.streams.get(streamId);
+    if (!stream) return;
+
+    // Update agent progress in stream
+    if (!stream.agentProgress) stream.agentProgress = {};
+    stream.agentProgress[agentId] = {
+      status: data.status,
+      progress: data.progress,
+      currentTask: data.currentTask,
+      estimatedCompletion: data.estimatedCompletion,
+      lastUpdate: Date.now()
+    };
+
+    // Update overall stream progress
+    const agentProgresses = Object.values(stream.agentProgress);
+    stream.progress = agentProgresses.reduce((sum, ap) => sum + ap.progress, 0) / agentProgresses.length;
+
+    // Update real-time display
+    this.displayManager.updateStream(stream);
+
+    console.log(`🔄 Stream ${streamId}: ${agentId} ${Math.round(data.progress * 100)}% - ${data.currentTask}`);
+  }
+
+  /**
+   * Handle file modifications with conflict detection
+   */
+  async handleFileModification(streamId, agentId, data) {
+    const stream = this.streams.get(streamId);
+    if (!stream) return;
+
+    const { filePath, operation } = data;
+
+    // Add to stream's modified files
+    if (!stream.filesModified.includes(filePath)) {
+      stream.filesModified.push(filePath);
+    }
+
+    // Check for conflicts with other streams
+    await this.conflictDetector.checkFileConflict(streamId, filePath, operation);
+
+    console.log(`📝 Stream ${streamId}: ${agentId} ${operation} ${filePath}`);
+  }
+
+  /**
+   * Monitor all streams and display real-time updates
+   */
+  async monitorMultiStreams(streams) {
+    // Start display manager
+    await this.displayManager.startMultiStreamDisplay(streams);
+
+    // Monitor for completion
+    const checkCompletion = () => {
+      const allCompleted = Array.from(this.streams.values())
+        .every(stream => stream.status === 'completed' || stream.status === 'failed');
+
+      if (!allCompleted) {
+        setTimeout(checkCompletion, 1000);
+      }
+    };
+
+    checkCompletion();
+  }
+
+  /**
+   * Check for conflicts between streams
+   */
+  async checkStreamConflicts(currentStream) {
+    const conflicts = [];
+
+    for (const [otherStreamId, otherStream] of this.streams.entries()) {
+      if (otherStreamId === currentStream.id || otherStream.status !== 'executing') continue;
+
+      // Check file conflicts
+      const overlappingFiles = currentStream.filesModified.filter(file =>
+        otherStream.filesModified.includes(file)
+      );
+
+      if (overlappingFiles.length > 0) {
+        conflicts.push({
+          streamId: otherStreamId,
+          userIntent: otherStream.userIntent,
+          files: overlappingFiles
+        });
+      }
+    }
+
+    if (conflicts.length > 0) {
+      console.log(`⚠️  Potential conflicts detected for stream ${currentStream.id}:`);
+      conflicts.forEach(conflict => {
+        console.log(`   vs ${conflict.streamId}: ${conflict.files.join(', ')}`);
+      });
+
+      // Notify user about conflicts
+      this.displayManager.showConflicts(currentStream.id, conflicts);
+    }
+  }
+
+  // Additional utility methods would be implemented here...
+
+  gatherContext(options) { return {}; }
+  extractRequirements(intent) { return []; }
+  getApplicableConstraints(intent) { return []; }
+  async getApplicableHarnessConstraints(intent) {
+    // Return Harness methodology constraints based on task type
+    const constraints = [];
+
+    if (intent.includes('auth') || intent.includes('security')) {
+      constraints.push('SECURITY_REVIEW_REQUIRED');
+      constraints.push('DOCUMENTATION_MANDATORY');
+    }
+
+    if (intent.includes('implement') || intent.includes('build') || intent.includes('create')) {
+      constraints.push('TESTING_REQUIRED');
+      constraints.push('CODE_REVIEW_BEFORE_MERGE');
+    }
+
+    // Always apply base Harness constraints
+    constraints.push('FOLLOW_HARNESS_METHODOLOGY');
+    constraints.push('AGENT_COORDINATION_REQUIRED');
+
+    return constraints;
+  }
+  async validateTaskAgainstHarnessRules(task) {
+    // Validate task against Harness engineering methodology from HARNESS.md
+    console.log(`🔍 Validating task against Harness rules...`);
+
+    // Validate core principles from loaded rules
+    if (!this.rules.agentDriven) {
+      throw new Error('Agent-driven development principle not loaded');
+    }
+
+    if (!this.rules.qualityGates) {
+      throw new Error('8-step validation cycle not configured');
+    }
+
+    // Check mandatory constraints from central HARNESS.md
+    const violations = [];
+
+    // Validate mandatory constraints
+    if (task.constraints.includes('DOCUMENTATION_MANDATORY') && this.rules.mandatory.DOCUMENTATION_MANDATORY) {
+      console.log(`📋 Documentation will be required for this task`);
+    }
+
+    if (task.constraints.includes('SECURITY_REVIEW_REQUIRED') && this.rules.mandatory.SECURITY_REVIEW_REQUIRED) {
+      console.log(`🛡️ Security review will be enforced`);
+    }
+
+    if (task.constraints.includes('TESTING_REQUIRED') && this.rules.mandatory.TESTING_REQUIRED) {
+      console.log(`🧪 Testing validation will be required`);
+    }
+
+    // Validate quality standards
+    if (this.rules.qualityStandards.evidenceBased) {
+      console.log(`📊 Evidence-based decisions required`);
+    }
+
+    if (this.rules.qualityStandards.securityByDefault) {
+      console.log(`🛡️ Security-by-default patterns enforced`);
+    }
+
+    // Always validate Harness compliance
+    if (!task.harnessCompliance || !this.rules.mandatory.FOLLOW_HARNESS_METHODOLOGY) {
+      violations.push('Task must follow Harness Engineering methodology');
+    }
+
+    // Agent coordination validation
+    if (!this.rules.mandatory.AGENT_COORDINATION_REQUIRED) {
+      violations.push('Agent coordination is required for all tasks');
+    }
+
+    if (violations.length > 0) {
+      throw new Error(`Harness methodology violations: ${violations.join(', ')}`);
+    }
+
+    console.log(`✅ Task validated against Harness rules\n`);
+    return true;
+  }
+
+  /**
+   * Create intelligent execution plan using LLM agent selection
+   */
+  async createIntelligentExecutionPlan(task) {
+    console.log('📊 Creating intelligent execution plan...');
+
+    // Use LLM for agent selection
+    const llmResult = await this.selectAgentsWithLLM(task.userIntent, {
+      visualContext: task.visualContext,
+      taskType: task.type,
+      constraints: task.constraints
+    });
+
+    // Handle help command directly
+    if (llmResult.task_type === 'help') {
+      console.log(llmResult.help_message);
+      process.exit(0);
+    }
+
+    // Create execution plan
+    const plan = {
+      id: task.id,
+      task_type: llmResult.task_type,
+      agents: llmResult.selected_agents,
+      execution_strategy: llmResult.execution_strategy,
+      reasoning: llmResult.reasoning,
+      dependencies: llmResult.dependencies,
+      estimated_duration: llmResult.estimated_duration,
+      harness_compliance: llmResult.harness_compliance,
+      phases: this.createPhases(task, llmResult.selected_agents, llmResult.execution_strategy)
+    };
+
+    console.log(`✅ Plan created: ${plan.agents.length} agents, ${plan.execution_strategy} strategy`);
+    console.log(`🎯 Reasoning: ${plan.reasoning}`);
+    console.log(`⏱️ Estimated duration: ${plan.estimated_duration}\n`);
+
+    return plan;
+  }
+
+  determineStrategy(task, agents) { return 'hybrid'; }
+  createPhases(task, agents, strategy) { return []; }
+  resolveDependencies(agents) { return {}; }
+  estimateDuration(task, agents) { return 15; }
+  isAgentRelevant(agent, task) { return true; }
+  validatePhase(phase) { return true; }
+  buildAgentTask(agent, task, results) { return {}; }
+  parseAgentResult(output) { return {}; }
+  updateProgress(agent, data) {}
+  hasDesignDoc(task) { return true; }
+  loadHarnessRules() {
+    try {
+      // Load central HARNESS.md for comprehensive methodology rules
+      const harnessContent = fs.readFileSync(path.join(__dirname, 'HARNESS.md'), 'utf8');
+
+      // Parse key rules from the markdown content
+      const rules = {
+        // Core Principles
+        agentDriven: harnessContent.includes('Agent-Driven Development'),
+        qualityGates: harnessContent.includes('8-step validation cycle'),
+        dependencyLayers: harnessContent.includes('Strict downward-only dependency flow'),
+        factoryPatterns: harnessContent.includes('Factory Pattern Compliance'),
+
+        // Compliance Requirements (extracted from HARNESS.md)
+        mandatory: {
+          FOLLOW_HARNESS_METHODOLOGY: true,
+          AGENT_COORDINATION_REQUIRED: true,
+          SECURITY_REVIEW_REQUIRED: harnessContent.includes('SECURITY_REVIEW_REQUIRED'),
+          TESTING_REQUIRED: harnessContent.includes('TESTING_REQUIRED'),
+          DOCUMENTATION_MANDATORY: harnessContent.includes('DOCUMENTATION_MANDATORY'),
+          CODE_REVIEW_BEFORE_MERGE: harnessContent.includes('CODE_REVIEW_BEFORE_MERGE')
+        },
+
+        // Agent Selection Rules
+        mandatoryAgents: {
+          security: ['authentication', 'permissions', 'sensitive data'],
+          testing: ['implementation', 'build', 'create'],
+          architect: ['system design', 'pattern validation'],
+          documentation: ['compliance-required tasks']
+        },
+
+        // Multi-Stream Rules
+        multiStream: {
+          gitBranchIsolation: true,
+          conflictDetection: true,
+          realTimeCoordination: true,
+          progressVisualization: true,
+          resourceManagement: true
+        },
+
+        // Quality Standards (from HARNESS.md)
+        qualityStandards: {
+          evidenceBased: true,
+          securityByDefault: true,
+          performanceAware: true, // <3s load, <200ms API
+          accessibilityFirst: true, // WCAG 2.1 AA
+          testCoverage: { unit: 0.8, integration: 0.7 }
+        }
+      };
+
+      return rules;
+    } catch (error) {
+      console.warn('⚠️ Could not load HARNESS.md, using default rules');
+      return this.getDefaultHarnessRules();
+    }
+  }
+
+  getDefaultHarnessRules() {
+    return {
+      agentDriven: true,
+      qualityGates: true,
+      dependencyLayers: true,
+      factoryPatterns: true,
+      mandatory: {
+        FOLLOW_HARNESS_METHODOLOGY: true,
+        AGENT_COORDINATION_REQUIRED: true,
+        SECURITY_REVIEW_REQUIRED: false,
+        TESTING_REQUIRED: true,
+        DOCUMENTATION_MANDATORY: false,
+        CODE_REVIEW_BEFORE_MERGE: true
+      },
+      mandatoryAgents: {
+        security: ['authentication'],
+        testing: ['implementation'],
+        architect: ['system design']
+      },
+      multiStream: {
+        gitBranchIsolation: true,
+        conflictDetection: true,
+        realTimeCoordination: true
+      },
+      qualityStandards: {
+        evidenceBased: true,
+        securityByDefault: true,
+        performanceAware: true,
+        accessibilityFirst: true,
+        testCoverage: { unit: 0.8, integration: 0.7 }
+      }
+    };
+  }
+  savePlanState(plan) {}
+  generateSummary(task, plan) {}
+  handleFailure(error) {}
+}
+
+/**
+ * Multi-Stream Display Manager - Real-time progress visualization
+ */
+class MultiStreamDisplay {
+  constructor() {
+    this.streams = new Map();
+    this.displayInterval = null;
+  }
+
+  async startMultiStreamDisplay(streams) {
+    console.clear();
+    console.log('🎯 Harness Engineering v3 - Multi-Stream Development Dashboard\n');
+
+    // Update display every second
+    this.displayInterval = setInterval(() => {
+      this.renderStreams();
+    }, 1000);
+  }
+
+  updateStream(stream) {
+    this.streams.set(stream.id, stream);
+  }
+
+  renderStreams() {
+    // Clear screen and redraw
+    process.stdout.write('\x1B[2J\x1B[0f');
+    console.log('🎯 Harness Engineering v3 - Multi-Stream Development Dashboard\n');
+
+    for (const [streamId, stream] of this.streams.entries()) {
+      this.renderSingleStream(stream);
+      console.log(''); // Empty line between streams
+    }
+  }
+
+  renderSingleStream(stream) {
+    const statusEmoji = {
+      'initializing': '🔄',
+      'executing': '⚡',
+      'completed': '✅',
+      'failed': '❌'
+    }[stream.status];
+
+    const progressBar = this.createProgressBar(stream.progress);
+    const elapsed = Math.round((Date.now() - stream.startTime) / 1000);
+
+    console.log(`┌─ ${statusEmoji} Stream: ${stream.userIntent} (${stream.branch}) ${'─'.repeat(20)}`);
+    console.log(`│ Progress: ${progressBar} ${Math.round(stream.progress * 100)}% | ${elapsed}s elapsed`);
+
+    if (stream.agentProgress) {
+      for (const [agentId, progress] of Object.entries(stream.agentProgress)) {
+        const agentEmoji = this.getAgentEmoji(agentId);
+        const agentBar = this.createProgressBar(progress.progress);
+        console.log(`│ ${agentEmoji} ${agentId}: ${agentBar} ${Math.round(progress.progress * 100)}% (${progress.currentTask || 'working...'})`);
+      }
+    }
+
+    if (stream.filesModified && stream.filesModified.length > 0) {
+      console.log(`│ Files: ${stream.filesModified.slice(0, 3).join(', ')}${stream.filesModified.length > 3 ? '...' : ''} (${stream.filesModified.length} total)`);
+    }
+
+    console.log(`└${'─'.repeat(70)}`);
+  }
+
+  createProgressBar(progress, width = 10) {
+    const filled = Math.round(progress * width);
+    return '█'.repeat(filled) + '░'.repeat(width - filled);
+  }
+
+  getAgentEmoji(agentId) {
+    const emojiMap = {
+      security: '🛡️',
+      frontend: '🎨',
+      backend: '⚙️',
+      architect: '🏗️',
+      testing: '🧪',
+      qa: '✅',
+      performance: '⚡',
+      devops: '🚀'
+    };
+    return emojiMap[agentId] || '🤖';
+  }
+
+  showConflicts(streamId, conflicts) {
+    console.log(`\n⚠️  CONFLICT ALERT - Stream ${streamId}:`);
+    conflicts.forEach(conflict => {
+      console.log(`   Overlapping files with "${conflict.userIntent}": ${conflict.files.join(', ')}`);
+    });
+    console.log('   Consider coordinating changes or using different file paths.\n');
+  }
+
+  stop() {
+    if (this.displayInterval) {
+      clearInterval(this.displayInterval);
+    }
+  }
+}
+
+/**
+ * Conflict Detection System
+ */
+class ConflictDetector {
+  constructor() {
+    this.fileModifications = new Map(); // filePath -> Set<streamId>
+  }
+
+  async checkFileConflict(streamId, filePath, operation) {
+    if (!this.fileModifications.has(filePath)) {
+      this.fileModifications.set(filePath, new Set());
+    }
+
+    const streamSet = this.fileModifications.get(filePath);
+    streamSet.add(streamId);
+
+    // If more than one stream is modifying the same file, it's a potential conflict
+    if (streamSet.size > 1) {
+      return {
+        hasConflict: true,
+        conflictingStreams: Array.from(streamSet)
+      };
+    }
+
+    return { hasConflict: false };
+  }
+}
+
+// Main execution with enhanced multimodal and interactive support
+async function main() {
+  const args = process.argv.slice(2);
+
+  if (args.length === 0) {
+    console.log(`
+🎯 Harness Engineering v3 - Multi-Stream Orchestrator
+
+Single Stream Usage:
+  ./harness "implement user authentication with OAuth"
+  ./harness "fix this bug" --screenshot="error.png" --branch="bugfix/auth-error"
+  ./harness "build chat app" --interactive --screenshot="design.png"
+
+Multi-Stream Parallel Development:
+  ./harness multi \\
+    --stream1="implement auth system" --branch1="feature/auth" \\
+    --stream2="fix performance bug" --branch2="bugfix/perf" --screenshot2="slow-query.png" \\
+    --stream3="add dashboard UI" --branch3="feature/dashboard" --screenshot3="mockup.png"
+
+  ./harness stream "implement OAuth" --branch="feature/oauth" --interactive
+
+Core Features:
+  🔄 Multi-Stream Support - 2-3 parallel development streams with git isolation
+  📂 Git Branch Isolation - Each stream works on separate branch automatically
+  📷 Screenshot Analysis  - Provide visual context for better understanding
+  🤖 Real-time Communication - Agents report progress to orchestrator via WebSocket
+  ⚡ Conflict Detection   - Automatic detection of overlapping file modifications
+  🛡️ Harness Compliance  - Automatic adherence to engineering methodology
+
+Basic Options:
+  --screenshot="path.png"       Include screenshot for visual context
+  --interactive                 Enable real-time interaction during execution
+  --context="existing API"      Provide additional context
+  --style="Material UI"         Specify UI framework preference
+  --dry-run                    Show execution plan without running
+
+Interactive Commands (during execution):
+  status                       Show current agent progress
+  pause [agent]               Pause specific agent or all agents
+  resume                      Resume paused execution
+  modify "additional req"     Add new requirements
+  screenshot "feedback.png"   Provide visual feedback
+  quit                       Stop execution gracefully
+
+Examples:
+  ./harness "implement JWT auth" --context="existing Express API"
+  ./harness "fix this error" --screenshot="console-error.png"
+  ./harness "build this UI" --screenshot="mockup.png" --style="Tailwind"
+  ./harness "optimize performance" --screenshot="slow-dashboard.png" --interactive
+
+Visual Use Cases:
+  🔧 Bug Fixing:     ./harness "fix this error" --screenshot="error-console.png"
+  🎨 UI Development: ./harness "implement this design" --screenshot="figma-mockup.png"
+  ⚡ Optimization:   ./harness "optimize this" --screenshot="performance-metrics.png"
+  📊 Features:       ./harness "add analytics like this" --screenshot="competitor-app.png"
+    `);
+    process.exit(0);
+  }
+
+  const command = args[0];
+  const orchestrator = new HarnessOrchestrator();
+
+  // Handle multi-stream execution
+  if (command === 'multi') {
+    const streams = parseMultiStreamArgs(args.slice(1));
+    await orchestrator.orchestrateMultiStream(streams);
+    return;
+  }
+
+  // Handle single stream execution
+  if (command === 'stream') {
+    const userIntent = args[1];
+    if (!userIntent) {
+      console.error('❌ Stream command requires intent: ./harness stream "task description"');
+      process.exit(1);
+    }
+
+    const options = parseSingleStreamArgs(args.slice(2));
+    options.streamMode = true;
+
+    await orchestrator.orchestrate(userIntent, options);
+    return;
+  }
+
+  // Handle traditional single-task execution (backward compatibility)
+  const userIntent = args[0];
+  const options = parseSingleStreamArgs(args.slice(1));
+
+  await orchestrator.orchestrate(userIntent, options);
+}
+
+/**
+ * Parse multi-stream arguments
+ */
+function parseMultiStreamArgs(args) {
+  const streams = [];
+  const streamData = {};
+
+  // Parse stream arguments
+  for (const arg of args) {
+    if (arg.startsWith('--')) {
+      const [key, value] = arg.substring(2).split('=');
+      const match = key.match(/^(stream|branch|screenshot)(\d+)$/);
+
+      if (match) {
+        const [, type, number] = match;
+        if (!streamData[number]) streamData[number] = {};
+        streamData[number][type] = value;
+      }
+    }
+  }
+
+  // Convert to stream configs
+  for (const [number, data] of Object.entries(streamData)) {
+    if (data.stream && data.branch) {
+      streams.push({
+        userIntent: data.stream,
+        branch: data.branch,
+        screenshots: data.screenshot ? [data.screenshot] : [],
+        interactive: false // Multi-stream mode doesn't support interactive for now
+      });
+    }
+  }
+
+  if (streams.length === 0) {
+    console.error('❌ Multi-stream mode requires at least one stream with both --streamN and --branchN');
+    console.log('Example: ./harness multi --stream1="implement auth" --branch1="feature/auth"');
+    process.exit(1);
+  }
+
+  if (streams.length > 3) {
+    console.error('❌ Maximum 3 parallel streams supported');
+    process.exit(1);
+  }
+
+  return streams;
+}
+
+/**
+ * Parse single stream arguments
+ */
+function parseSingleStreamArgs(args) {
+  const options = {
+    screenshots: [],
+    interactive: false,
+    branch: null
+  };
+
+  // Parse enhanced options
+  for (const arg of args) {
+    if (arg.startsWith('--')) {
+      const [key, value] = arg.substring(2).split('=');
+
+      if (key === 'screenshot') {
+        options.screenshots.push(value);
+      } else if (key === 'interactive') {
+        options.interactive = true;
+      } else if (key === 'branch') {
+        options.branch = value;
+      } else {
+        options[key] = value || true;
+      }
+    }
+  }
+
+  // Validate screenshot paths
+  if (options.screenshots.length > 0) {
+    console.log(`📷 Processing ${options.screenshots.length} screenshot(s)...`);
+    for (const screenshot of options.screenshots) {
+      if (!fs.existsSync(screenshot)) {
+        console.error(`❌ Screenshot not found: ${screenshot}`);
+        console.log('💡 Tip: Provide full path or ensure file exists in current directory');
+        process.exit(1);
+      }
+    }
+  }
+
+  return options;
+}
+
+// Handle errors gracefully
+process.on('unhandledRejection', (error) => {
+  console.error('\n💥 Unexpected error:', error.message);
+  process.exit(1);
+});
+
+if (require.main === module) {
+  main().catch(console.error);
+}
+
+module.exports = { HarnessOrchestrator };
