@@ -409,6 +409,5 @@ describe('MessageInput component', () => {
 ## Cross-References
 
 - **Testing Strategy**: [../../design/testing.md](../../design/testing.md)
-- **TDD Coordination**: [../workflows/tdd-coordination.md](../workflows/tdd-coordination.md)
 - **Quality Standards**: [integration-validator.md](integration-validator.md)
 - **Shared Responsibilities**: [shared-responsibilities.md](shared-responsibilities.md)

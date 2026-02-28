@@ -29,7 +29,6 @@
 - **[devops.md](agents/devops.md)** - Build, deployment, infrastructure
 
 ### Workflow & Process (`docs/workflows/`)
-- **[tdd-coordination.md](workflows/tdd-coordination.md)** - Test-driven development patterns
 - **[conflict-resolution.md](workflows/)** - Multi-agent conflict resolution
 - **[validation-cycle.md](workflows/)** - 8-step quality gate process
 - **[parallel-development.md](workflows/)** - Multi-stream coordination

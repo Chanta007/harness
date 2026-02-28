@@ -150,7 +150,6 @@ import { extractionEngine } from '../analysis/extraction-engine';
 ```
 
 ### Workflow & Process Documentation
-- **Multi-Agent Coordination**: `docs/workflows/tdd-coordination.md`
 - **Conflict Resolution**: `docs/workflows/conflict-resolution.md`
 - **Quality Gates**: `docs/workflows/validation-cycle.md`
 - **Multi-Stream Development**: `docs/workflows/parallel-development.md`
