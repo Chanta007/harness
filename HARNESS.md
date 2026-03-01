@@ -280,3 +280,34 @@ npm run deploy:do    # Serverless functions + WebSocket coordination
 5. **Validate compliance** - Ensure all quality gates pass
 
 **Remember**: Harness Engineering v3 transforms complex multi-agent coordination into simple natural language commands while maintaining enterprise-grade methodology compliance and quality standards.
+
+---
+
+## 🖥️ Cursor IDE Quick Reference
+
+For Cursor users, see `.cursor/harness.md` for:
+- Live agent definitions fetched from the server
+- Quick curl command reference
+- Cursor-specific workflow examples
+
+### Cursor Setup Files
+| File | Purpose |
+|------|---------|
+| `.cursorrules` | Cursor IDE behavior and HARNESS compliance rules |
+| `.cursor/harness.md` | Auto-populated API reference (live from server) |
+| `.cursor/mcp.json` | Optional MCP servers (context7, sequential-thinking) |
+
+### Quick Cursor Commands
+```bash
+# Select agents for a task
+curl -X POST -H "X-API-Key: $HARNESS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "implement user authentication"}' \
+  https://harness-d4o0.onrender.com/api/select-agents-harness
+
+# Validate compliance
+curl -X POST -H "X-API-Key: $HARNESS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "task", "agents": ["coordinator","security","backend"]}' \
+  https://harness-d4o0.onrender.com/api/validate
+```

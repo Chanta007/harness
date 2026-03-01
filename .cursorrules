@@ -1,0 +1,70 @@
+# HARNESS Engineering v3 — Cursor Rules
+
+## Agent System
+This project uses HARNESS Engineering v3 multi-agent orchestration.
+Reference .cursor/harness.md for full API documentation.
+
+## Before Starting Any Task
+Always query the HARNESS REST API to determine which agents are needed:
+
+```bash
+# Step 1: Select agents
+curl -X POST \
+  -H "X-API-Key: $HARNESS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "describe the task here"}' \
+  https://harness-d4o0.onrender.com/api/select-agents-harness
+
+# Step 2: Validate compliance
+curl -X POST \
+  -H "X-API-Key: $HARNESS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "task", "agents": ["coordinator","security","backend"]}' \
+  https://harness-d4o0.onrender.com/api/validate
+```
+
+## Task Routing by Domain
+
+- authentication  → security, backend, testing
+- frontend        → frontend, testing
+- backend         → backend, data, testing
+- fullstack       → coordinator, architect, security, backend, frontend, testing, devops
+- performance     → backend, testing
+- infrastructure  → devops, architect, testing
+
+## Agent Personas (load definition before executing)
+
+Each agent has a full definition on the server. Load it when you activate that agent:
+curl -H "X-API-Key: $HARNESS_API_KEY" https://harness-d4o0.onrender.com/api/agents/{name}
+
+- coordinator: Master orchestrator, routes tasks, resolves conflicts
+- architect:   System design, dependency layers, factory patterns
+- security:    Auth, encryption, zero-trust, threat modeling
+- backend:     APIs, services, reliability (99.9% uptime target)
+- frontend:    UI/UX, WCAG 2.1 AA accessibility, <3s load times
+- data:        Database design, schema migrations, AES-256-GCM encryption
+- testing:     TDD (RED-GREEN-REFACTOR), ≥80% unit, ≥70% integration coverage
+- devops:      CI/CD, zero-downtime deployments, infrastructure as code
+
+## HARNESS Compliance Rules (enforce on every task)
+
+- AGENT_COORDINATION_REQUIRED    — never use a single agent
+- SECURITY_REVIEW_REQUIRED       — security agent mandatory for auth/sensitive data
+- TESTING_REQUIRED               — testing agent mandatory for all implementation
+- 8-STEP_VALIDATION              — syntax → type → lint → security → test → performance → docs → integration
+- DEPENDENCY_LAYER_ENFORCEMENT   — PAGES → COMPONENTS → API ROUTES → SERVICES → CORE → INFRASTRUCTURE → TYPES
+- FACTORY_PATTERN_COMPLIANCE     — all LLM via createLLMConnection(), all auth via AuthGateway
+
+## Parallelism Note
+
+Cursor does not support native subagents. The HARNESS REST server handles
+parallelism internally — when you call /api/select-agents-harness, the server
+determines parallel vs sequential execution. You execute the result sequentially
+in Cursor following the returned coordination_strategy.
+
+## Code Quality Standards
+
+- TypeScript strict mode always
+- Zod schemas for all API inputs
+- Error boundaries on all async operations
+- No console.log in production code
